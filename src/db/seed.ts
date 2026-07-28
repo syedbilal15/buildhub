@@ -9,12 +9,12 @@ async function seed() {
   const existingUser = await db
     .select()
     .from(users)
-    .where(eq(users.email, "admin@alhamd.com"));
+    .where(eq(users.email, "admin@buildhub.com"));
 
   if (existingUser.length === 0) {
     const hashed = await hashPassword("admin123");
     await db.insert(users).values({
-      email: "admin@alhamd.com",
+      email: "admin@buildhub.com",
       password: hashed,
       name: "Admin User",
       role: "admin",
@@ -26,28 +26,28 @@ async function seed() {
 
   const projectData = [
     {
-      name: "Al Hamd Garden Estate",
+      name: "Build Hub Garden Estate",
       projectCode: "AHG-001",
       location: "Phase 7, Gulshan-e-Maymar, Karachi",
-      developer: "Al Hamd Developers",
+      developer: "Build Hub Developers",
       description: "A premium gated community with lush green parks and wide boulevards.",
       status: "active",
       amenities: ["Park", "Mosque", "Community Hall", "24/7 Security", "Wide Roads", "Sewerage System"],
     },
     {
-      name: "Al Hamd Business Center",
+      name: "Build Hub Business Center",
       projectCode: "AHB-001",
       location: "Shahrah-e-Faisal, Karachi",
-      developer: "Al Hamd Developers",
+      developer: "Build Hub Developers",
       description: "Prime commercial property development with modern office spaces.",
       status: "active",
       amenities: ["Parking", "Elevators", "Generator Backup", "Security", "Cafeteria"],
     },
     {
-      name: "Al Hamd Residencia",
+      name: "Build Hub Residencia",
       projectCode: "AHR-001",
       location: "DHA Phase 6, Lahore",
-      developer: "Al Hamd Developers",
+      developer: "Build Hub Developers",
       description: "Luxury residential villas and apartments in DHA Lahore.",
       status: "active",
       amenities: ["Swimming Pool", "Gym", "Park", "Community Center", "24/7 Security"],
@@ -174,7 +174,7 @@ async function seed() {
   }
 
   console.log("\n✅ Seed complete!");
-  console.log("   Admin: admin@alhamd.com / admin123");
+  console.log("   Admin: admin@buildhub.com / admin123");
   process.exit(0);
 }
 

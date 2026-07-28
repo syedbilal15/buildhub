@@ -205,19 +205,19 @@ export default function DocumentPage() {
             className="text-3xl font-bold text-brand-800"
             style={{ fontFamily: "Arial, sans-serif", letterSpacing: "0.05em" }}
           >
-            AL HAMD REAL ESTATE
+            BUILD HUB
           </h1>
           <p
             className="mt-1 text-sm text-slate-600"
             style={{ fontFamily: "Arial, sans-serif" }}
           >
-            Your Trusted Partner in Real Estate
+            Your Trusted Property Partner
           </p>
           <p
             className="mt-1 text-xs text-slate-500"
             style={{ fontFamily: "Arial, sans-serif" }}
           >
-            Lahore, Pakistan | Tel: +92-300-0000000 | Email: info@alhamd.com.pk
+            Lahore, Pakistan | Tel: +92-300-0000000 | Email: info@buildhub.com.pk
           </p>
         </div>
 
@@ -242,7 +242,7 @@ export default function DocumentPage() {
           </p>
           <div className="ml-6 mt-2 text-sm text-slate-700">
             <p>
-              <strong>Al Hamd Real Estate</strong> (hereinafter referred to as
+              <strong>Build Hub</strong> (hereinafter referred to as
               the &quot;First Party&quot; or &quot;Seller&quot;)
             </p>
           </div>
@@ -515,7 +515,7 @@ export default function DocumentPage() {
             <p className="text-xs text-slate-600">
               Authorized Representative
             </p>
-            <p className="text-xs text-slate-600">Al Hamd Real Estate</p>
+          <p className="text-xs text-slate-600">Build Hub</p>
             <p className="mt-2 text-xs text-slate-500">Date: _______________</p>
           </div>
           <div>
@@ -536,7 +536,7 @@ export default function DocumentPage() {
         {/* Footer */}
         <div className="mt-10 border-t border-slate-200 pt-4 text-center text-xs text-slate-400">
           <p>
-            This is a computer-generated document from Al Hamd Real Estate
+            This is a computer-generated document from Build Hub
             Management System.
           </p>
           <p>

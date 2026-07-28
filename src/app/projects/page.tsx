@@ -166,7 +166,7 @@ export default function ProjectsPage() {
             Projects
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Manage your real estate projects
+            Manage your property projects
           </p>
         </div>
         <button
@@ -230,102 +230,77 @@ export default function ProjectsPage() {
           )}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/80">
-                  <th className="px-5 py-3.5 font-semibold text-slate-600">Name</th>
-                  <th className="px-5 py-3.5 font-semibold text-slate-600">Code</th>
-                  <th className="hidden px-5 py-3.5 font-semibold text-slate-600 md:table-cell">Location</th>
-                  <th className="hidden px-5 py-3.5 font-semibold text-slate-600 sm:table-cell">Units</th>
-                  <th className="px-5 py-3.5 font-semibold text-slate-600">Status</th>
-                  <th className="px-5 py-3.5 font-semibold text-slate-600">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {projects.map((item) => (
-                  <tr
-                    key={item.project.id}
-                    className="transition-colors hover:bg-slate-50/50"
-                  >
-                    <td className="px-5 py-3.5">
-                      <Link
-                        href={`/projects/${item.project.id}`}
-                        className="font-medium text-slate-900 transition-colors hover:text-brand-600"
-                      >
-                        {item.project.name}
-                      </Link>
-                    </td>
-                    <td className="px-5 py-3.5 text-slate-600">
-                      {item.project.projectCode || "—"}
-                    </td>
-                    <td className="hidden px-5 py-3.5 text-slate-600 md:table-cell">
-                      <span className="inline-flex items-center gap-1">
-                        <MapPin size={12} className="text-slate-400" />
-                        {item.project.location || "—"}
-                      </span>
-                    </td>
-                    <td className="hidden px-5 py-3.5 sm:table-cell">
-                      <div className="flex items-center gap-2">
-                        <Link
-                          href={`/projects/${item.project.id}`}
-                          className="inline-flex items-center gap-1 rounded-lg bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-700 transition-colors hover:bg-violet-100"
-                        >
-                          <Layers size={12} />
-                          {item.unitCount} unit{item.unitCount !== 1 ? "s" : ""}
-                        </Link>
-                        {item.unitCount > 0 && (
-                          <Link
-                            href={`/units?projectId=${item.project.id}`}
-                            className="text-xs text-slate-400 hover:text-brand-600 transition-colors"
-                            title="Manage Units"
-                          >
-                            Manage
-                          </Link>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span
-                        className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusBadge(
-                          item.project.status
-                        )}`}
-                      >
-                        {item.project.status.charAt(0).toUpperCase() +
-                          item.project.status.slice(1).replace("_", " ")}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-1">
-                        <Link
-                          href={`/projects/${item.project.id}`}
-                          className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
-                          title="View"
-                        >
-                          <Eye size={15} />
-                        </Link>
-                        <button
-                          onClick={() => openEditForm(item)}
-                          className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-brand-50 hover:text-brand-600"
-                          title="Edit"
-                        >
-                          <Pencil size={15} />
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirm(item.project.id)}
-                          className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
-                          title="Delete"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          {projects.map((item) => (
+            <div key={item.project.id} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                    {item.project.projectCode || "Project"}
+                  </p>
+                  <h3 className="text-base font-semibold text-slate-900">
+                    {item.project.name}
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {item.project.location || item.project.developer || "No location available"}
+                  </p>
+                </div>
+                <span
+                  className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${getStatusBadge(
+                    item.project.status
+                  )}`}
+                >
+                  {item.project.status.charAt(0).toUpperCase() +
+                    item.project.status.slice(1).replace("_", " ")}
+                </span>
+              </div>
+
+              <div className="mb-4 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
+                <div className="flex items-center gap-2">
+                  <Layers size={14} className="text-slate-400" />
+                  <span>{item.unitCount} unit{item.unitCount !== 1 ? "s" : ""}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MapPin size={14} className="text-slate-400" />
+                  <span>{item.project.location || "Location not set"}</span>
+                </div>
+                {item.project.developer && (
+                  <div className="flex items-center gap-2">
+                    <Building2 size={14} className="text-slate-400" />
+                    <span>{item.project.developer}</span>
+                  </div>
+                )}
+                {item.project.description && (
+                  <div className="col-span-full text-sm text-slate-500">
+                    {item.project.description}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
+                <Link
+                  href={`/projects/${item.project.id}`}
+                  className="inline-flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-sm font-medium text-brand-700 transition-all duration-200 hover:bg-brand-100"
+                >
+                  <Eye size={14} /> View Details
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => openEditForm(item)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 transition-all duration-200 hover:bg-slate-100"
+                >
+                  <Pencil size={14} /> Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirm(item.project.id)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 transition-all duration-200 hover:bg-red-100"
+                >
+                  <Trash2 size={14} /> Delete
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -356,7 +331,7 @@ export default function ProjectsPage() {
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                     className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20"
-                    placeholder="e.g., Al Hamd Garden Estate"
+                    placeholder="e.g., Build Hub Garden Estate"
                   />
                 </div>
                 <div>

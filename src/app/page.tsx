@@ -155,7 +155,7 @@ export default function DashboardPage() {
             Dashboard
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Overview of Al Hamd Real Estate inventory and sales
+            Overview of Build Hub inventory and sales
           </p>
         </div>
         <Link

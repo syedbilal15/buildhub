@@ -4,7 +4,7 @@ import "./globals.css";
 import AppShell from "@/components/AppShell";
 
 export const metadata: Metadata = {
-  title: "Al Hamd Real Estate — Inventory & Sales Management",
+  title: "Build Hub — Inventory & Sales Management",
   description:
     "Manage property projects, track client purchases, record installment payments, and generate legal sale documents.",
 };

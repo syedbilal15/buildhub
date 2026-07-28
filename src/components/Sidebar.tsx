@@ -28,7 +28,7 @@ export default function Sidebar() {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userName, setUserName] = useState("Admin User");
-  const [userEmail, setUserEmail] = useState("admin@alhamd.com");
+  const [userEmail, setUserEmail] = useState("admin@buildhub.com");
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
@@ -120,11 +120,10 @@ export default function Sidebar() {
       >
         <div className="flex items-center gap-3 border-b border-slate-800/80 px-5 py-5">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 font-bold text-white shadow-lg shadow-brand-600/30">
-            AH
+            BH
           </div>
           <div>
-            <h1 className="text-base font-bold text-white">Al Hamd</h1>
-            <p className="text-xs font-medium text-slate-400">Real Estate</p>
+            <h1 className="text-base font-bold text-white">Build Hub</h1>
           </div>
         </div>
 

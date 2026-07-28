@@ -6,7 +6,7 @@ import { Building2, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("admin@alhamd.com");
+  const [email, setEmail] = useState("admin@buildhub.com");
   const [password, setPassword] = useState("admin123");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -49,7 +49,7 @@ export default function LoginPage() {
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 shadow-lg shadow-brand-600/30">
               <Building2 size={28} className="text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-white">Al Hamd Real Estate</h1>
+            <h1 className="text-2xl font-bold text-white">Build Hub</h1>
             <p className="mt-1 text-sm text-slate-400">Sign in to your account</p>
           </div>
 
@@ -64,7 +64,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full rounded-xl border border-slate-600 bg-slate-700/50 px-4 py-2.5 text-sm text-white outline-none transition-all duration-200 placeholder:text-slate-500 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
-                placeholder="admin@alhamd.com"
+                placeholder="admin@buildhub.com"
               />
             </div>
 
@@ -107,7 +107,7 @@ export default function LoginPage() {
           </form>
 
           <p className="mt-6 text-center text-xs text-slate-500">
-            Default: admin@alhamd.com / admin123
+            Default: admin@buildhub.com / admin123
           </p>
         </div>
       </div>
