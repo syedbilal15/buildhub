@@ -27,7 +27,6 @@ interface Project {
   name: string;
   projectCode: string | null;
   location: string | null;
-  developer: string | null;
   description: string | null;
   status: string;
   launchDate: string | null;
@@ -139,6 +138,15 @@ export default function ProjectDetailPage() {
   useEffect(() => {
     startTransition(() => fetchBookings());
   }, [fetchBookings]);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("addUnit") === "true") {
+      setShowUnitForm(true);
+      url.searchParams.delete("addUnit");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, []);
 
   const openAddUnit = () => {
     setEditingUnit(null);
@@ -269,24 +277,10 @@ export default function ProjectDetailPage() {
             <div><p className="text-xs font-medium text-slate-500">Location</p><p className="text-sm font-medium text-slate-800">{project.location || "—"}</p></div>
           </div>
           <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-3.5">
-            <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-white text-slate-400 shadow-sm"><User size={16} /></div>
-            <div><p className="text-xs font-medium text-slate-500">Developer</p><p className="text-sm font-medium text-slate-800">{project.developer || "—"}</p></div>
-          </div>
-          <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-3.5">
             <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-white text-slate-400 shadow-sm"><Calendar size={16} /></div>
             <div><p className="text-xs font-medium text-slate-500">Date Added</p><p className="text-sm font-medium text-slate-800">{formatDate(project.createdAt)}</p></div>
           </div>
         </div>
-        {project.description && (
-          <div className="mt-4"><p className="text-sm leading-relaxed text-slate-600">{project.description}</p></div>
-        )}
-        {project.amenities && project.amenities.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {project.amenities.map((a, i) => (
-              <span key={i} className="rounded-lg bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700">{a}</span>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Statistics */}

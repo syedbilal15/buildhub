@@ -27,7 +27,6 @@ export const projects = pgTable("projects", {
   name: varchar("name", { length: 255 }).notNull(),
   projectCode: varchar("project_code", { length: 50 }),
   location: text("location"),
-  developer: varchar("developer", { length: 255 }),
   description: text("description"),
   status: varchar("status", { length: 20 }).default("active"),
   launchDate: date("launch_date"),

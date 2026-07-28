@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, startTransition } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Plus,
@@ -20,7 +21,6 @@ interface ProjectWithCount {
     name: string;
     projectCode: string | null;
     location: string | null;
-    developer: string | null;
     description: string | null;
     status: string;
     createdAt: string;
@@ -47,7 +47,6 @@ const emptyForm = {
   name: "",
   projectCode: "",
   location: "",
-  developer: "",
   description: "",
   status: "active",
 };
@@ -57,6 +56,7 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const [editingProject, setEditingProject] = useState<ProjectWithCount["project"] | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -92,7 +92,6 @@ export default function ProjectsPage() {
       name: item.project.name,
       projectCode: item.project.projectCode || "",
       location: item.project.location || "",
-      developer: item.project.developer || "",
       description: item.project.description || "",
       status: item.project.status,
     });
@@ -110,15 +109,21 @@ export default function ProjectsPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(form),
         });
+        setShowForm(false);
+        fetchProjects();
       } else {
-        await fetch("/api/projects", {
+        const res = await fetch("/api/projects", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(form),
         });
+        const data = await res.json();
+        if (!res.ok) {
+          console.error(data);
+          return;
+        }
+        router.push(`/projects/${data.id}?addUnit=true`);
       }
-      setShowForm(false);
-      fetchProjects();
     } catch (err) {
       console.error(err);
     } finally {
@@ -242,7 +247,7 @@ export default function ProjectsPage() {
                     {item.project.name}
                   </h3>
                   <p className="mt-1 text-sm text-slate-500">
-                    {item.project.location || item.project.developer || "No location available"}
+                    {item.project.location || "No location available"}
                   </p>
                 </div>
                 <span
@@ -264,12 +269,6 @@ export default function ProjectsPage() {
                   <MapPin size={14} className="text-slate-400" />
                   <span>{item.project.location || "Location not set"}</span>
                 </div>
-                {item.project.developer && (
-                  <div className="flex items-center gap-2">
-                    <Building2 size={14} className="text-slate-400" />
-                    <span>{item.project.developer}</span>
-                  </div>
-                )}
                 {item.project.description && (
                   <div className="col-span-full text-sm text-slate-500">
                     {item.project.description}
@@ -358,19 +357,6 @@ export default function ProjectsPage() {
                   onChange={(e) => setForm({ ...form, location: e.target.value })}
                   className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20"
                   placeholder="e.g., Phase 7, Gulshan-e-Maymar, Karachi"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-slate-600">
-                  Developer
-                </label>
-                <input
-                  type="text"
-                  value={form.developer}
-                  onChange={(e) => setForm({ ...form, developer: e.target.value })}
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20"
-                  placeholder="e.g., Al Hamd Developers"
                 />
               </div>
 

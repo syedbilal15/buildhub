@@ -55,7 +55,6 @@ export async function POST(request: NextRequest) {
         name: body.name,
         projectCode: body.projectCode || null,
         location: body.location || null,
-        developer: body.developer || null,
         description: body.description || null,
         status: body.status || "active",
         launchDate: body.launchDate || null,
