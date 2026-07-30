@@ -224,15 +224,6 @@ export default function ProjectsPage() {
               ? "Try adjusting your filters"
               : "Add your first project to get started"}
           </p>
-          {!search && !statusFilter && (
-            <button
-              onClick={openAddForm}
-              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-brand-600 to-brand-700 px-4 py-2 text-sm font-medium text-white shadow-md hover:from-brand-700 hover:to-brand-800"
-            >
-              <Plus size={14} />
-              Add Project
-            </button>
-          )}
         </div>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
