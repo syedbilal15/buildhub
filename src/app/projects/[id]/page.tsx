@@ -8,43 +8,33 @@ import {
   Building2,
   MapPin,
   Layers,
-  IndianRupee,
   Calendar,
   Plus,
   Pencil,
   Trash2,
   Eye,
-  X,
-  User,
-  Code,
-  CheckCircle2,
-  CircleDashed,
   ClipboardList,
+  Code,
+  DollarSign,
 } from "lucide-react";
+import Button from "@/components/Button";
+import Input from "@/components/Input";
+import Select from "@/components/Select";
+import Modal from "@/components/Modal";
+import Badge from "@/components/Badge";
+import Spinner from "@/components/Spinner";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 interface Project {
-  id: number;
-  name: string;
-  projectCode: string | null;
-  location: string | null;
-  description: string | null;
-  status: string;
-  launchDate: string | null;
-  completionDate: string | null;
-  amenities: string[] | null;
-  createdAt: string;
+  id: number; name: string; projectCode: string | null; location: string | null;
+  description: string | null; status: string; launchDate: string | null;
+  completionDate: string | null; amenities: string[] | null; createdAt: string;
+  assignedUnits?: { id: number; unitNumber: string; name: string | null; propertyType: string; area: string | null; price: string; status: string }[];
 }
 
 interface Unit {
-  id: number;
-  unitNumber: string;
-  name: string | null;
-  propertyType: string;
-  area: string | null;
-  price: string;
-  status: string;
-  bedrooms: number | null;
-  bathrooms: number | null;
+  id: number; unitNumber: string; name: string | null; propertyType: string;
+  area: string | null; price: string; status: string; bedrooms: number | null; bathrooms: number | null;
 }
 
 interface BookingItem {
@@ -52,20 +42,6 @@ interface BookingItem {
   client: { id: number; name: string; cnic: string } | null;
   unit: { id: number; unitNumber: string } | null;
 }
-
-const STATUS_COLORS: Record<string, string> = {
-  active: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20",
-  completed: "bg-blue-50 text-blue-700 ring-1 ring-blue-600/20",
-  on_hold: "bg-amber-50 text-amber-700 ring-1 ring-amber-600/20",
-};
-
-const UNIT_STATUS_COLORS: Record<string, string> = {
-  available: "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-600/20",
-  reserved: "bg-amber-100 text-amber-700 ring-1 ring-amber-600/20",
-  booked: "bg-blue-100 text-blue-700 ring-1 ring-blue-600/20",
-  sold: "bg-slate-100 text-slate-700 ring-1 ring-slate-600/20",
-  cancelled: "bg-red-100 text-red-700 ring-1 ring-red-600/20",
-};
 
 const PROPERTY_TYPES: Record<string, string> = {
   apartment: "Apartment", office: "Office", shop: "Shop",
@@ -75,16 +51,12 @@ const PROPERTY_TYPES: Record<string, string> = {
 function formatCurrency(amount: string | number) {
   const num = typeof amount === "string" ? parseFloat(amount) : amount;
   if (isNaN(num)) return "Rs. 0";
-  return new Intl.NumberFormat("en-PK", {
-    style: "currency", currency: "PKR", maximumFractionDigits: 0,
-  }).format(num);
+  return new Intl.NumberFormat("en-PK", { style: "currency", currency: "PKR", maximumFractionDigits: 0 }).format(num);
 }
 
 function formatDate(dateStr: string | null) {
   if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleDateString("en-PK", {
-    year: "numeric", month: "short", day: "numeric",
-  });
+  return new Date(dateStr).toLocaleDateString("en-PK", { year: "numeric", month: "short", day: "numeric" });
 }
 
 export default function ProjectDetailPage() {
@@ -96,13 +68,12 @@ export default function ProjectDetailPage() {
   const [showUnitForm, setShowUnitForm] = useState(false);
   const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
   const [savingUnit, setSavingUnit] = useState(false);
-  const [deleteUnitConfirm, setDeleteUnitConfirm] = useState<number | null>(null);
+  const [deleteUnitId, setDeleteUnitId] = useState<number | null>(null);
   const [deleteUnitError, setDeleteUnitError] = useState("");
   const [deleteUnitLoading, setDeleteUnitLoading] = useState(false);
   const [projectBookings, setProjectBookings] = useState<BookingItem[]>([]);
   const [unitForm, setUnitForm] = useState({
-    unitNumber: "", name: "", propertyType: "apartment",
-    area: "", price: "", status: "available",
+    unitNumber: "", name: "", propertyType: "apartment", area: "", price: "", status: "available",
     bedrooms: "", bathrooms: "", facing: "", cornerUnit: false,
   });
 
@@ -111,12 +82,8 @@ export default function ProjectDetailPage() {
       fetch(`/api/projects/${params.id}`),
       fetch(`/api/projects/${params.id}/units`),
     ]);
-    if (projRes.ok) {
-      setProject(await projRes.json());
-    }
-    if (unitsRes.ok) {
-      setUnits(await unitsRes.json());
-    }
+    if (projRes.ok) setProject(await projRes.json());
+    if (unitsRes.ok) setUnits(await unitsRes.json());
     setLoading(false);
   }, [params.id]);
 
@@ -124,25 +91,19 @@ export default function ProjectDetailPage() {
     try {
       const allBookings = await fetch("/api/bookings").then(r => r.json());
       const filtered = allBookings.filter(
-        (b: { booking: { projectId?: number } } & BookingItem) =>
-          Number(b.booking.projectId) === Number(params.id)
+        (b: { booking: { projectId?: number } } & BookingItem) => Number(b.booking.projectId) === Number(params.id)
       );
       setProjectBookings(filtered.slice(0, 10));
     } catch { /* ignore */ }
   }, [params.id]);
 
-  useEffect(() => {
-    startTransition(() => fetchData());
-  }, [fetchData]);
-
-  useEffect(() => {
-    startTransition(() => fetchBookings());
-  }, [fetchBookings]);
+  useEffect(() => { startTransition(() => fetchData()); }, [fetchData]);
+  useEffect(() => { startTransition(() => fetchBookings()); }, [fetchBookings]);
 
   useEffect(() => {
     const url = new URL(window.location.href);
     if (url.searchParams.get("addUnit") === "true") {
-      setShowUnitForm(true);
+      startTransition(() => setShowUnitForm(true));
       url.searchParams.delete("addUnit");
       window.history.replaceState({}, "", url.toString());
     }
@@ -157,16 +118,10 @@ export default function ProjectDetailPage() {
   const openEditUnit = (unit: Unit) => {
     setEditingUnit(unit);
     setUnitForm({
-      unitNumber: unit.unitNumber,
-      name: unit.name || "",
-      propertyType: unit.propertyType,
-      area: unit.area || "",
-      price: unit.price,
-      status: unit.status,
-      bedrooms: unit.bedrooms?.toString() || "",
-      bathrooms: unit.bathrooms?.toString() || "",
-      facing: "",
-      cornerUnit: false,
+      unitNumber: unit.unitNumber, name: unit.name || "", propertyType: unit.propertyType,
+      area: unit.area || "", price: unit.price, status: unit.status,
+      bedrooms: unit.bedrooms?.toString() || "", bathrooms: unit.bathrooms?.toString() || "",
+      facing: "", cornerUnit: false,
     });
     setShowUnitForm(true);
   };
@@ -187,36 +142,25 @@ export default function ProjectDetailPage() {
       }
       setShowUnitForm(false);
       fetchData();
-    } catch (err) { console.error(err); }
+    } catch { /* ignore */ }
     finally { setSavingUnit(false); }
   };
 
-  const handleDeleteUnit = async (id: number) => {
+  const handleDeleteUnit = async () => {
+    if (!deleteUnitId) return;
     setDeleteUnitLoading(true);
     setDeleteUnitError("");
     try {
-      const res = await fetch(`/api/units/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/units/${deleteUnitId}`, { method: "DELETE" });
       const data = await res.json();
-      if (!res.ok) {
-        setDeleteUnitError(data.error || "Failed to delete unit");
-        return;
-      }
-      setDeleteUnitConfirm(null);
+      if (!res.ok) { setDeleteUnitError(data.error || "Failed to delete unit"); return; }
+      setDeleteUnitId(null);
       fetchData();
-    } catch {
-      setDeleteUnitError("Network error. Please try again.");
-    } finally {
-      setDeleteUnitLoading(false);
-    }
+    } catch { setDeleteUnitError("Network error."); }
+    finally { setDeleteUnitLoading(false); }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-brand-500 border-t-transparent" />
-      </div>
-    );
-  }
+  if (loading) return <Spinner />;
 
   if (!project) {
     return (
@@ -230,129 +174,154 @@ export default function ProjectDetailPage() {
   }
 
   const stats = [
-    { label: "Total Units", value: units.length, color: "bg-violet-50 text-violet-700", valueColor: "text-violet-900" },
-    { label: "Available", value: units.filter(u => u.status === "available").length, color: "bg-emerald-50 text-emerald-700", valueColor: "text-emerald-900" },
-    { label: "Reserved", value: units.filter(u => u.status === "reserved").length, color: "bg-amber-50 text-amber-700", valueColor: "text-amber-900" },
-    { label: "Booked", value: units.filter(u => u.status === "booked").length, color: "bg-blue-50 text-blue-700", valueColor: "text-blue-900" },
-    { label: "Sold", value: units.filter(u => u.status === "sold").length, color: "bg-slate-50 text-slate-700", valueColor: "text-slate-900" },
+    { label: "Total Units", value: units.length, color: "bg-violet-50 text-violet-900" },
+    { label: "Available", value: units.filter(u => u.status === "available").length, color: "bg-emerald-50 text-emerald-900" },
+    { label: "Reserved", value: units.filter(u => u.status === "reserved").length, color: "bg-amber-50 text-amber-900" },
+    { label: "Booked", value: units.filter(u => u.status === "booked").length, color: "bg-blue-50 text-blue-900" },
+    { label: "Sold", value: units.filter(u => u.status === "sold").length, color: "bg-slate-50 text-slate-900" },
   ];
 
   return (
-    <div className="animate-fade-in">
-      <button onClick={() => router.push("/projects")} className="mb-6 inline-flex items-center gap-2 text-sm text-slate-500 transition-colors hover:text-brand-600">
+    <div className="animate-fade-in space-y-6">
+      {/* Back */}
+      <button onClick={() => router.push("/projects")} className="inline-flex items-center gap-2 text-sm text-slate-500 transition-colors hover:text-brand-600">
         <ArrowLeft size={16} /> Back to Projects
       </button>
 
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">{project.name}</h1>
-            <span className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${STATUS_COLORS[project.status] || "bg-slate-100 text-slate-600"}`}>
-              {project.status.charAt(0).toUpperCase() + project.status.slice(1).replace("_", " ")}
-            </span>
+            <Badge>{project.status}</Badge>
           </div>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="text-sm text-slate-500">
             {project.projectCode && <>{project.projectCode} &middot; </>}
             {project.location || "No location set"}
           </p>
         </div>
-        <Link href={`/bookings/new?projectId=${project.id}`}
-          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-brand-600 to-brand-700 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-brand-600/30 transition-all duration-200 hover:from-brand-700 hover:to-brand-800 active:scale-[0.97]">
-          <Plus size={16} /> New Booking
+        <Link href={`/bookings/new?projectId=${project.id}`}>
+          <Button><Plus size={16} /> New Booking</Button>
         </Link>
       </div>
 
-      {/* Project Details */}
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm mb-6">
+      {/* Project Info */}
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-slate-900">
           <Building2 size={16} className="text-brand-500" /> Project Information
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-3.5">
-            <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-white text-slate-400 shadow-sm"><Code size={16} /></div>
-            <div><p className="text-xs font-medium text-slate-500">Project Code</p><p className="text-sm font-medium text-slate-800">{project.projectCode || "—"}</p></div>
-          </div>
-          <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-3.5">
-            <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-white text-slate-400 shadow-sm"><MapPin size={16} /></div>
-            <div><p className="text-xs font-medium text-slate-500">Location</p><p className="text-sm font-medium text-slate-800">{project.location || "—"}</p></div>
-          </div>
-          <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-3.5">
-            <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-white text-slate-400 shadow-sm"><Calendar size={16} /></div>
-            <div><p className="text-xs font-medium text-slate-500">Date Added</p><p className="text-sm font-medium text-slate-800">{formatDate(project.createdAt)}</p></div>
-          </div>
+          {[
+            { icon: Code, label: "Project Code", value: project.projectCode || "—" },
+            { icon: MapPin, label: "Location", value: project.location || "—" },
+            { icon: Calendar, label: "Date Added", value: formatDate(project.createdAt) },
+            { icon: DollarSign, label: "Launch Date", value: formatDate(project.launchDate) },
+          ].map((item, i) => (
+            <div key={i} className="flex items-start gap-3 rounded-xl bg-slate-50 p-3.5">
+              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-slate-400 shadow-sm">
+                <item.icon size={16} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-slate-500">{item.label}</p>
+                <p className="text-sm font-medium text-slate-800 truncate">{item.value}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Statistics */}
-      <div className="grid gap-4 sm:grid-cols-5 mb-6">
+      {/* Stats */}
+      <div className="grid gap-4 sm:grid-cols-5">
         {stats.map((s) => (
-          <div key={s.label} className={`rounded-xl ${s.color} p-4`}>
-            <p className="text-xs font-medium">{s.label}</p>
-            <p className={`text-2xl font-bold ${s.valueColor}`}>{s.value}</p>
+          <div key={s.label} className={`rounded-xl ${s.color} p-4 text-center`}>
+            <p className="text-xs font-medium text-slate-500">{s.label}</p>
+            <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
           </div>
         ))}
       </div>
 
-      {/* Units Section */}
-      <div className="rounded-xl border border-slate-200 bg-white shadow-sm mb-6">
+      {/* Assigned Units */}
+      {project.assignedUnits && project.assignedUnits.length > 0 && (
+        <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-100 px-5 py-4">
+            <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900">
+              <Layers size={16} className="text-brand-500" /> Assigned Units
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{project.assignedUnits.length}</span>
+            </h2>
+          </div>
+          <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
+            {project.assignedUnits.map((u) => (
+              <Link key={u.id} href={`/units/${u.id}`}
+                className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 transition-colors hover:border-brand-300 hover:bg-brand-50"
+              >
+                <p className="font-medium text-slate-900">{u.unitNumber}</p>
+                {u.name && <p className="text-xs text-slate-500">{u.name}</p>}
+                <div className="mt-1 flex items-center gap-2 text-xs text-slate-400">
+                  <span>{PROPERTY_TYPES[u.propertyType] || u.propertyType}</span>
+                  <span>&middot;</span>
+                  <span>{formatCurrency(u.price)}</span>
+                </div>
+                <Badge>{u.status}</Badge>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Units */}
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
           <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900">
             <Layers size={16} className="text-brand-500" /> Units
             <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{units.length}</span>
           </h2>
-          <button onClick={openAddUnit} className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-brand-600 to-brand-700 px-4 py-2 text-sm font-medium text-white shadow-md transition-all duration-200 hover:from-brand-700 hover:to-brand-800 active:scale-[0.97]">
-            <Plus size={14} /> Add Unit
-          </button>
+          <Button variant="primary" size="sm" onClick={openAddUnit}><Plus size={14} /> Add Unit</Button>
         </div>
 
         {units.length === 0 ? (
           <div className="py-12 text-center">
             <Layers size={36} className="mx-auto text-slate-300" />
             <p className="mt-3 text-sm font-medium text-slate-500">No units added yet</p>
-            <button onClick={openAddUnit} className="mt-3 inline-flex items-center gap-1 rounded-xl bg-brand-50 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-100">
+            <Button variant="outline" size="sm" onClick={openAddUnit} className="mt-3">
               <Plus size={14} /> Add First Unit
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/50">
-                  <th className="px-5 py-3 font-semibold text-slate-600">Unit #</th>
-                  <th className="px-5 py-3 font-semibold text-slate-600">Name</th>
-                  <th className="hidden px-5 py-3 font-semibold text-slate-600 sm:table-cell">Type</th>
-                  <th className="hidden px-5 py-3 font-semibold text-slate-600 md:table-cell">Area</th>
-                  <th className="px-5 py-3 font-semibold text-slate-600">Price</th>
-                  <th className="px-5 py-3 font-semibold text-slate-600">Status</th>
-                  <th className="px-5 py-3 font-semibold text-slate-600">Actions</th>
+                <tr className="border-b border-slate-200 bg-slate-50/80">
+                  <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500">Unit #</th>
+                  <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500">Name</th>
+                  <th className="hidden px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500 sm:table-cell">Type</th>
+                  <th className="hidden px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500 md:table-cell">Area</th>
+                  <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500">Price</th>
+                  <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
+                  <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {units.map((unit) => (
                   <tr key={unit.id} className="transition-colors hover:bg-slate-50/50">
-                    <td className="px-5 py-3 font-medium text-slate-900">{unit.unitNumber}</td>
-                    <td className="px-5 py-3 text-slate-600">{unit.name || "—"}</td>
-                    <td className="hidden px-5 py-3 text-slate-600 sm:table-cell">
+                    <td className="px-5 py-4 font-medium text-slate-900">{unit.unitNumber}</td>
+                    <td className="px-5 py-4 text-slate-600">{unit.name || "—"}</td>
+                    <td className="hidden px-5 py-4 text-slate-600 sm:table-cell">
                       <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
                         {PROPERTY_TYPES[unit.propertyType] || unit.propertyType}
                       </span>
                     </td>
-                    <td className="hidden px-5 py-3 text-slate-600 md:table-cell">{unit.area ? `${unit.area} sq ft` : "—"}</td>
-                    <td className="px-5 py-3 font-medium text-slate-800">{formatCurrency(unit.price)}</td>
-                    <td className="px-5 py-3">
-                      <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${UNIT_STATUS_COLORS[unit.status] || "bg-slate-100 text-slate-600"}`}>
-                        {unit.status.charAt(0).toUpperCase() + unit.status.slice(1)}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3">
+                    <td className="hidden px-5 py-4 text-slate-600 md:table-cell">{unit.area ? `${unit.area} sq ft` : "—"}</td>
+                    <td className="px-5 py-4 font-medium text-slate-800">{formatCurrency(unit.price)}</td>
+                    <td className="px-5 py-4"><Badge>{unit.status}</Badge></td>
+                    <td className="px-5 py-4">
                       <div className="flex items-center gap-1">
-                        <Link href={`/units/${unit.id}`} className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700" title="View Unit">
+                        <Link href={`/units/${unit.id}`} className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700" title="View">
                           <Eye size={15} />
                         </Link>
-                        <button onClick={() => openEditUnit(unit)} className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-brand-50 hover:text-brand-600" title="Edit Unit">
+                        <button onClick={() => openEditUnit(unit)} className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-brand-50 hover:text-brand-600" title="Edit">
                           <Pencil size={15} />
                         </button>
-                        <button onClick={() => setDeleteUnitConfirm(unit.id)} className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600" title="Delete Unit">
+                        <button onClick={() => setDeleteUnitId(unit.id)} className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600" title="Delete">
                           <Trash2 size={15} />
                         </button>
                       </div>
@@ -380,14 +349,14 @@ export default function ProjectDetailPage() {
         ) : (
           <div className="divide-y divide-slate-100">
             {projectBookings.map((item) => (
-              <div key={item.booking.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-slate-50 transition-colors">
+              <div key={item.booking.id} className="flex items-center justify-between px-5 py-3.5 transition-colors hover:bg-slate-50">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-slate-800">{item.booking.referenceNumber || "—"}</p>
                   <p className="text-xs text-slate-500">
                     {item.client?.name || "Unknown"} &middot; Unit #{item.unit?.unitNumber || "—"} &middot; {formatDate(item.booking.bookingDate)}
                   </p>
                 </div>
-                <div className="flex items-center gap-3 ml-4">
+                <div className="ml-4 flex items-center gap-3">
                   <span className="text-sm font-medium text-slate-800">{formatCurrency(item.booking.salePrice)}</span>
                   <Link href={`/bookings/${item.booking.id}`} className="rounded-lg bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-100">
                     View
@@ -400,91 +369,43 @@ export default function ProjectDetailPage() {
       </div>
 
       {/* Unit Form Modal */}
-      {showUnitForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="animate-scale-in max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl">
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-slate-900">{editingUnit ? "Edit Unit" : "Add New Unit"}</h2>
-              <button onClick={() => setShowUnitForm(false)} className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"><X size={20} /></button>
-            </div>
-            <form onSubmit={handleUnitSubmit} className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold text-slate-600">Unit Number *</label>
-                  <input type="text" required value={unitForm.unitNumber} onChange={(e) => setUnitForm({ ...unitForm, unitNumber: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20" placeholder="e.g., V-001" />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold text-slate-600">Name</label>
-                  <input type="text" value={unitForm.name} onChange={(e) => setUnitForm({ ...unitForm, name: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20" placeholder="e.g., Villa A" />
-                </div>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold text-slate-600">Property Type</label>
-                  <select value={unitForm.propertyType} onChange={(e) => setUnitForm({ ...unitForm, propertyType: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition-all duration-200 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20">
-                    {Object.entries(PROPERTY_TYPES).map(([k, v]) => (<option key={k} value={k}>{v}</option>))}
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold text-slate-600">Area (sq ft)</label>
-                  <input type="number" step="0.01" value={unitForm.area} onChange={(e) => setUnitForm({ ...unitForm, area: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20" placeholder="e.g., 5000" />
-                </div>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold text-slate-600">Price (PKR) *</label>
-                  <input type="number" required value={unitForm.price} onChange={(e) => setUnitForm({ ...unitForm, price: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20" placeholder="e.g., 25000000" />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold text-slate-600">Status</label>
-                  <select value={unitForm.status} onChange={(e) => setUnitForm({ ...unitForm, status: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition-all duration-200 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20">
-                    <option value="available">Available</option>
-                    <option value="reserved">Reserved</option>
-                    <option value="booked">Booked</option>
-                    <option value="sold">Sold</option>
-                    <option value="cancelled">Cancelled</option>
-                  </select>
-                </div>
-              </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setShowUnitForm(false)} className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-medium text-slate-600 transition-all duration-200 hover:bg-slate-50 active:scale-[0.97]">Cancel</button>
-                <button type="submit" disabled={savingUnit} className="rounded-xl bg-gradient-to-br from-brand-600 to-brand-700 px-5 py-2.5 text-sm font-medium text-white shadow-md transition-all duration-200 hover:from-brand-700 hover:to-brand-800 active:scale-[0.97] disabled:opacity-50">
-                  {savingUnit ? "Saving..." : editingUnit ? "Update Unit" : "Add Unit"}
-                </button>
-              </div>
-            </form>
+      <Modal open={showUnitForm} onClose={() => setShowUnitForm(false)} title={editingUnit ? "Edit Unit" : "Add New Unit"}>
+        <form onSubmit={handleUnitSubmit} className="space-y-5">
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Input label="Unit Number *" required value={unitForm.unitNumber} onChange={(e) => setUnitForm({ ...unitForm, unitNumber: e.target.value })} placeholder="e.g., V-001" />
+            <Input label="Name" value={unitForm.name} onChange={(e) => setUnitForm({ ...unitForm, name: e.target.value })} placeholder="e.g., Villa A" />
           </div>
-        </div>
-      )}
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Select label="Property Type" value={unitForm.propertyType} onChange={(e) => setUnitForm({ ...unitForm, propertyType: e.target.value })} options={Object.entries(PROPERTY_TYPES).map(([k, v]) => ({ value: k, label: v }))} />
+            <Input label="Area (sq ft)" type="number" step="0.01" value={unitForm.area} onChange={(e) => setUnitForm({ ...unitForm, area: e.target.value })} placeholder="e.g., 5000" />
+          </div>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Input label="Price (PKR) *" type="number" required value={unitForm.price} onChange={(e) => setUnitForm({ ...unitForm, price: e.target.value })} placeholder="e.g., 25000000" />
+            <Select label="Status" value={unitForm.status} onChange={(e) => setUnitForm({ ...unitForm, status: e.target.value })} options={[
+              { value: "available", label: "Available" }, { value: "reserved", label: "Reserved" },
+              { value: "booked", label: "Booked" }, { value: "sold", label: "Sold" },
+              { value: "cancelled", label: "Cancelled" },
+            ]} />
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="secondary" type="button" onClick={() => setShowUnitForm(false)}>Cancel</Button>
+            <Button type="submit" loading={savingUnit}>{editingUnit ? "Update Unit" : "Add Unit"}</Button>
+          </div>
+        </form>
+      </Modal>
 
-      {/* Delete Unit Confirmation */}
-      {deleteUnitConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="animate-scale-in w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-slate-900">Delete Unit?</h3>
-            <p className="mt-2 text-sm text-slate-500">
-              This action cannot be undone. The unit and all associated data will be permanently removed.
-            </p>
-            {deleteUnitError && (
-              <div className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-600">{deleteUnitError}</div>
-            )}
-            <div className="mt-5 flex justify-end gap-3">
-              <button onClick={() => { setDeleteUnitConfirm(null); setDeleteUnitError(""); }} disabled={deleteUnitLoading}
-                className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-medium text-slate-600 transition-all duration-200 hover:bg-slate-50 active:scale-[0.97] disabled:opacity-50">Cancel</button>
-              <button onClick={() => handleDeleteUnit(deleteUnitConfirm)} disabled={deleteUnitLoading}
-                className="rounded-xl bg-gradient-to-br from-red-600 to-red-700 px-5 py-2.5 text-sm font-medium text-white shadow-md transition-all duration-200 hover:from-red-700 hover:to-red-800 active:scale-[0.97] disabled:opacity-50">
-                {deleteUnitLoading ? "Deleting..." : "Delete"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Delete Unit Confirm */}
+      <ConfirmDialog
+        open={deleteUnitId !== null}
+        title="Delete Unit?"
+        message="This action cannot be undone. The unit and all associated data will be permanently removed."
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleteUnitLoading}
+        error={deleteUnitError}
+        onConfirm={handleDeleteUnit}
+        onCancel={() => { setDeleteUnitId(null); setDeleteUnitError(""); }}
+      />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { db } from "@/db";
-import { units, projects, activityLog } from "@/db/schema";
-import { eq, ilike, or, and, desc } from "drizzle-orm";
+import { units, projects, projectUnits, activityLog } from "@/db/schema";
+import { eq, ilike, or, and, desc, inArray } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -42,7 +42,37 @@ export async function GET(request: NextRequest) {
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(units.createdAt));
 
-    return NextResponse.json(result);
+    const unitIds = result.map((r) => r.unit.id);
+    const assignedProjectLinks =
+      unitIds.length > 0
+        ? await db
+            .select({
+              unitId: projectUnits.unitId,
+              projectId: projectUnits.projectId,
+              projectName: projects.name,
+              projectCode: projects.projectCode,
+            })
+            .from(projectUnits)
+            .innerJoin(projects, eq(projects.id, projectUnits.projectId))
+            .where(inArray(projectUnits.unitId, unitIds))
+        : [];
+
+    const assignedMap: Record<number, { id: number; name: string; projectCode: string | null }[]> = {};
+    for (const link of assignedProjectLinks) {
+      if (!assignedMap[link.unitId]) assignedMap[link.unitId] = [];
+      assignedMap[link.unitId].push({
+        id: link.projectId,
+        name: link.projectName,
+        projectCode: link.projectCode,
+      });
+    }
+
+    const enriched = result.map((r) => ({
+      ...r,
+      assignedProjects: assignedMap[r.unit.id] || [],
+    }));
+
+    return NextResponse.json(enriched);
   } catch (error) {
     console.error("Units GET error:", error);
     return NextResponse.json({ error: "Failed to fetch units" }, { status: 500 });

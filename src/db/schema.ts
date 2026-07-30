@@ -9,7 +9,10 @@ import {
   date,
   json,
   boolean,
+  primaryKey,
 } from "drizzle-orm/pg-core";
+
+import { relations } from "drizzle-orm";
 
 // ── Users / Auth ──────────────────────────────────────────────────
 export const users = pgTable("users", {
@@ -142,3 +145,37 @@ export const activityLog = pgTable("activity_log", {
   entityId: integer("entity_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
+
+// ── Project-Unit junction table ──────────────────────────────────
+export const projectUnits = pgTable(
+  "project_units",
+  {
+    projectId: integer("project_id")
+      .references(() => projects.id, { onDelete: "cascade" })
+      .notNull(),
+    unitId: integer("unit_id")
+      .references(() => units.id, { onDelete: "cascade" })
+      .notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.projectId, table.unitId] })]
+);
+
+// ── Relations ────────────────────────────────────────────────────
+export const projectsRelations = relations(projects, ({ many }) => ({
+  projectUnits: many(projectUnits),
+}));
+
+export const unitsRelations = relations(units, ({ many }) => ({
+  projectUnits: many(projectUnits),
+}));
+
+export const projectUnitsRelations = relations(projectUnits, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectUnits.projectId],
+    references: [projects.id],
+  }),
+  unit: one(units, {
+    fields: [projectUnits.unitId],
+    references: [units.id],
+  }),
+}));
