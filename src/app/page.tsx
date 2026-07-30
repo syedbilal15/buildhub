@@ -158,13 +158,6 @@ export default function DashboardPage() {
             Overview of Build Hub inventory and sales
           </p>
         </div>
-        <Link
-          href="/projects"
-          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-brand-600 to-brand-700 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-brand-600/30 transition-all duration-200 hover:from-brand-700 hover:to-brand-800 hover:shadow-brand-600/40 active:scale-[0.97]"
-        >
-          <Plus size={16} />
-          Add New Project
-        </Link>
       </div>
 
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
