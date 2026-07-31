@@ -200,9 +200,6 @@ export default function ProjectDetailPage() {
             {project.location || "No location set"}
           </p>
         </div>
-        <Link href={`/bookings/new?projectId=${project.id}`}>
-          <Button><Plus size={16} /> New Booking</Button>
-        </Link>
       </div>
 
       {/* Project Info */}
@@ -249,17 +246,20 @@ export default function ProjectDetailPage() {
               <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{project.assignedUnits.length}</span>
             </h2>
           </div>
-          <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="divide-y divide-slate-100">
             {project.assignedUnits.map((u) => (
-              <Link key={u.id} href={`/units/${u.id}`}
-                className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 transition-colors hover:border-brand-300 hover:bg-brand-50"
+              <Link
+                key={u.id}
+                href={`/units/${u.id}`}
+                className="flex items-center justify-between gap-4 px-5 py-4 transition-colors hover:bg-slate-50"
               >
-                <p className="font-medium text-slate-900">{u.unitNumber}</p>
-                {u.name && <p className="text-xs text-slate-500">{u.name}</p>}
-                <div className="mt-1 flex items-center gap-2 text-xs text-slate-400">
-                  <span>{PROPERTY_TYPES[u.propertyType] || u.propertyType}</span>
-                  <span>&middot;</span>
-                  <span>{formatCurrency(u.price)}</span>
+                <div>
+                  <p className="font-medium text-slate-900">{u.unitNumber}</p>
+                  {u.name && <p className="text-sm text-slate-500">{u.name}</p>}
+                </div>
+                <div className="hidden text-right sm:block">
+                  <p className="text-sm text-slate-600">{PROPERTY_TYPES[u.propertyType] || u.propertyType}</p>
+                  <p className="text-sm font-medium text-slate-800">{formatCurrency(u.price)}</p>
                 </div>
                 <Badge>{u.status}</Badge>
               </Link>
