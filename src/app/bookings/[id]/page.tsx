@@ -6,8 +6,15 @@ import Link from "next/link";
 import { startTransition } from "react";
 import {
   ArrowLeft, CheckCircle2, FileText, CreditCard, User, Building2, Layers,
-  X, Calendar, Receipt, Trash2, Ban,
+  Calendar, Receipt, Trash2, Ban,
 } from "lucide-react";
+import Button from "@/components/Button";
+import Badge from "@/components/Badge";
+import Spinner from "@/components/Spinner";
+import Modal from "@/components/Modal";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import Input from "@/components/Input";
+import Select from "@/components/Select";
 
 function formatCurrency(amount: string | number) {
   const num = typeof amount === "string" ? parseFloat(amount) : amount;
@@ -18,7 +25,7 @@ function formatCurrency(amount: string | number) {
 }
 
 function formatDate(dateStr: string | null) {
-  if (!dateStr) return "—";
+  if (!dateStr) return "\u2014";
   return new Date(dateStr).toLocaleDateString("en-PK", {
     year: "numeric", month: "short", day: "numeric",
   });
@@ -140,13 +147,7 @@ export default function BookingDetailPage() {
     setPayModal({ installmentId, installmentNumber, amount });
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-brand-500 border-t-transparent" />
-      </div>
-    );
-  }
+  if (loading) return <Spinner />;
 
   if (!data) {
     return (
@@ -176,8 +177,8 @@ export default function BookingDetailPage() {
       </button>
 
       {successMsg && (
-        <div className="mb-4 rounded-xl bg-emerald-50 border border-emerald-200 px-5 py-3 text-sm font-medium text-emerald-700 flex items-center gap-2">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-medium text-emerald-700">
+          <CheckCircle2 size={16} />
           {successMsg}
         </div>
       )}
@@ -191,16 +192,10 @@ export default function BookingDetailPage() {
         </div>
         <div className="flex gap-2 flex-wrap">
           {isActive && data.booking.status !== "sold" && (
-            <button onClick={handleFinalize}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-700 px-4 py-2.5 text-sm font-medium text-white shadow-md transition-all duration-200 hover:from-emerald-700 hover:to-emerald-800 active:scale-[0.97]">
-              <CheckCircle2 size={16} /> Finalize Sale
-            </button>
+            <Button onClick={handleFinalize}><CheckCircle2 size={16} /> Finalize Sale</Button>
           )}
           {isActive && !hasPayments && (
-            <button onClick={() => { setDeleteConfirm(true); setActionError(""); }}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-red-600 to-red-700 px-4 py-2.5 text-sm font-medium text-white shadow-md transition-all duration-200 hover:from-red-700 hover:to-red-800 active:scale-[0.97]">
-              <Trash2 size={16} /> Delete
-            </button>
+            <Button variant="danger" onClick={() => { setDeleteConfirm(true); setActionError(""); }}><Trash2 size={16} /> Delete</Button>
           )}
           {isActive && hasPayments && (
             <button onClick={() => { setCancelConfirm(true); setActionError(""); }}
@@ -208,9 +203,8 @@ export default function BookingDetailPage() {
               <Ban size={16} /> Cancel Booking
             </button>
           )}
-          <Link href={`/documents/${data.booking.id}`}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 shadow-sm transition-all duration-200 hover:bg-slate-50 active:scale-[0.97]">
-            <FileText size={16} /> Generate Document
+          <Link href={`/documents/${data.booking.id}`}>
+            <Button variant="outline"><FileText size={16} /> Generate Document</Button>
           </Link>
         </div>
       </div>
@@ -255,7 +249,7 @@ export default function BookingDetailPage() {
                 <Calendar size={16} className="text-brand-500" /> Installment Schedule
               </h2>
               {data.booking.paymentType === "full" ? (
-                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-600/20">Full Payment</span>
+                <Badge variant="success">Full Payment</Badge>
               ) : (
                 <span className="text-xs font-medium text-slate-500">{data.booking.installmentCount} {data.booking.installmentFrequency} installments</span>
               )}
@@ -267,12 +261,12 @@ export default function BookingDetailPage() {
                 <table className="w-full text-left text-sm">
                   <thead>
                     <tr className="border-b border-slate-100 bg-slate-50/80">
-                      <th className="px-5 py-3.5 font-semibold text-slate-600">#</th>
-                      <th className="px-5 py-3.5 font-semibold text-slate-600">Due Date</th>
-                      <th className="px-5 py-3.5 font-semibold text-slate-600">Amount</th>
-                      <th className="px-5 py-3.5 font-semibold text-slate-600">Paid</th>
-                      <th className="px-5 py-3.5 font-semibold text-slate-600">Status</th>
-                      <th className="px-5 py-3.5 font-semibold text-slate-600">Action</th>
+                      <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500">#</th>
+                      <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500">Due Date</th>
+                      <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500">Amount</th>
+                      <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500">Paid</th>
+                      <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
+                      <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -282,7 +276,7 @@ export default function BookingDetailPage() {
                         <td className="px-5 py-3.5 text-slate-600">{formatDate(data.booking.bookingDate)}</td>
                         <td className="px-5 py-3.5 font-medium text-slate-800">{formatCurrency(data.booking.downPayment)}</td>
                         <td className="px-5 py-3.5 font-medium text-emerald-600">{formatCurrency(data.booking.downPayment)}</td>
-                        <td className="px-5 py-3.5"><span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-600/20">Paid</span></td>
+                        <td className="px-5 py-3.5"><Badge>paid</Badge></td>
                         <td className="px-5 py-3.5 text-slate-400">—</td>
                       </tr>
                     )}
@@ -292,13 +286,7 @@ export default function BookingDetailPage() {
                         <td className="px-5 py-3.5 text-slate-600">{formatDate(inst.dueDate)}</td>
                         <td className="px-5 py-3.5 font-medium text-slate-800">{formatCurrency(inst.amount)}</td>
                         <td className="px-5 py-3.5 font-medium text-emerald-600">{formatCurrency(inst.paidAmount)}</td>
-                        <td className="px-5 py-3.5">
-                          <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${
-                            inst.status === "paid" ? "bg-emerald-50 text-emerald-700 ring-emerald-600/20" :
-                            isOverdue(inst) ? "bg-red-50 text-red-700 ring-red-600/20" : "bg-amber-50 text-amber-700 ring-amber-600/20"}`}>
-                            {inst.status === "paid" ? "Paid" : isOverdue(inst) ? "Overdue" : "Pending"}
-                          </span>
-                        </td>
+                        <td className="px-5 py-3.5"><Badge>{isOverdue(inst) ? "overdue" : inst.status}</Badge></td>
                         <td className="px-5 py-3.5">
                           {inst.status !== "paid" && (
                             <button onClick={() => openPayModal(inst.id, inst.installmentNumber, inst.amount)}
@@ -329,11 +317,11 @@ export default function BookingDetailPage() {
                 <table className="w-full text-left text-sm">
                   <thead>
                     <tr className="border-b border-slate-100 bg-slate-50/80">
-                      <th className="px-5 py-3.5 font-semibold text-slate-600">Date</th>
-                      <th className="px-5 py-3.5 font-semibold text-slate-600">Amount</th>
-                      <th className="px-5 py-3.5 font-semibold text-slate-600">Method</th>
-                      <th className="px-5 py-3.5 font-semibold text-slate-600">Receipt #</th>
-                      <th className="px-5 py-3.5 font-semibold text-slate-600">Notes</th>
+                      <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500">Date</th>
+                      <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500">Amount</th>
+                      <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500">Method</th>
+                      <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500">Receipt #</th>
+                      <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500">Notes</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -391,11 +379,7 @@ export default function BookingDetailPage() {
             <div className="space-y-3 text-sm">
               <div className="flex items-center justify-between">
                 <span className="text-slate-500">Status:</span>
-                <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${
-                  data.booking.status === "sold" ? "bg-emerald-50 text-emerald-700 ring-emerald-600/20" :
-                  data.booking.status === "cancelled" ? "bg-red-50 text-red-700 ring-red-600/20" : "bg-amber-50 text-amber-700 ring-amber-600/20"}`}>
-                  {data.booking.status.charAt(0).toUpperCase() + data.booking.status.slice(1)}
-                </span>
+                <Badge>{data.booking.status}</Badge>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-500">Payment:</span>
@@ -410,93 +394,54 @@ export default function BookingDetailPage() {
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {deleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="animate-scale-in w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-slate-900">Delete Booking</h3>
-            <p className="mt-2 text-sm text-slate-500">Are you sure you want to delete this booking? This action cannot be undone.</p>
-            {actionError && <div className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-600">{actionError}</div>}
-            <div className="mt-5 flex justify-end gap-3">
-              <button onClick={() => { setDeleteConfirm(false); setActionError(""); }} disabled={actionLoading}
-                className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-medium text-slate-600 transition-all duration-200 hover:bg-slate-50 active:scale-[0.97] disabled:opacity-50">Cancel</button>
-              <button onClick={handleDelete} disabled={actionLoading}
-                className="rounded-xl bg-gradient-to-br from-red-600 to-red-700 px-5 py-2.5 text-sm font-medium text-white shadow-md transition-all duration-200 hover:from-red-700 hover:to-red-800 active:scale-[0.97] disabled:opacity-50">
-                {actionLoading ? "Deleting..." : "Delete Booking"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={deleteConfirm}
+        title="Delete Booking"
+        message="Are you sure you want to delete this booking? This action cannot be undone."
+        confirmLabel="Delete Booking"
+        variant="danger"
+        loading={actionLoading}
+        error={actionError}
+        onConfirm={handleDelete}
+        onCancel={() => { setDeleteConfirm(false); setActionError(""); }}
+      />
 
-      {/* Cancel Confirmation Modal */}
-      {cancelConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="animate-scale-in w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-slate-900">Cancel Booking</h3>
-            <p className="mt-2 text-sm text-slate-500">Are you sure you want to cancel this booking? Payment records will be preserved but the unit will become available.</p>
-            {actionError && <div className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-600">{actionError}</div>}
-            <div className="mt-5 flex justify-end gap-3">
-              <button onClick={() => { setCancelConfirm(false); setActionError(""); }} disabled={actionLoading}
-                className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-medium text-slate-600 transition-all duration-200 hover:bg-slate-50 active:scale-[0.97] disabled:opacity-50">Cancel</button>
-              <button onClick={handleCancel} disabled={actionLoading}
-                className="rounded-xl bg-gradient-to-br from-amber-600 to-amber-700 px-5 py-2.5 text-sm font-medium text-white shadow-md transition-all duration-200 hover:from-amber-700 hover:to-amber-800 active:scale-[0.97] disabled:opacity-50">
-                {actionLoading ? "Cancelling..." : "Cancel Booking"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={cancelConfirm}
+        title="Cancel Booking"
+        message="Are you sure you want to cancel this booking? Payment records will be preserved but the unit will become available."
+        confirmLabel="Cancel Booking"
+        variant="danger"
+        loading={actionLoading}
+        error={actionError}
+        onConfirm={handleCancel}
+        onCancel={() => { setCancelConfirm(false); setActionError(""); }}
+      />
 
-      {payModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="animate-scale-in w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-slate-900">Record Payment — Installment #{payModal.installmentNumber}</h2>
-              <button onClick={() => setPayModal(null)} className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"><X size={20} /></button>
+      <Modal open={!!payModal} onClose={() => setPayModal(null)} title={`Record Payment — Installment #${payModal?.installmentNumber || ""}`} size="md">
+        {payModal && (
+          <form onSubmit={handleRecordPayment} className="space-y-4">
+            <Input label="Amount Paid (PKR) *" type="number" required step="0.01" value={payForm.paidAmount} onChange={(e) => setPayForm({ ...payForm, paidAmount: e.target.value })} helperText={`Due: ${formatCurrency(payModal.amount)}`} />
+            <Input label="Payment Date *" type="date" required value={payForm.paidDate} onChange={(e) => setPayForm({ ...payForm, paidDate: e.target.value })} />
+            <Select label="Payment Method" value={payForm.paymentMethod} onChange={(e) => setPayForm({ ...payForm, paymentMethod: e.target.value })} options={[
+              { value: "cash", label: "Cash" },
+              { value: "bank_transfer", label: "Bank Transfer" },
+              { value: "cheque", label: "Cheque" },
+              { value: "online", label: "Online Payment" },
+            ]} />
+            <Input label="Receipt Number" value={payForm.receiptNumber} onChange={(e) => setPayForm({ ...payForm, receiptNumber: e.target.value })} placeholder="Optional receipt #" />
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-slate-600">Notes</label>
+              <textarea rows={2} value={payForm.notes} onChange={(e) => setPayForm({ ...payForm, notes: e.target.value })} placeholder="Optional notes"
+                className="block w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-900 outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20" />
             </div>
-            <form onSubmit={handleRecordPayment} className="space-y-4">
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-slate-600">Amount Paid (PKR) *</label>
-                <input type="number" required step="0.01" value={payForm.paidAmount} onChange={(e) => setPayForm({ ...payForm, paidAmount: e.target.value })}
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition-all duration-200 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20" />
-                <p className="mt-1 text-xs text-slate-400">Due: {formatCurrency(payModal.amount)}</p>
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-slate-600">Payment Date *</label>
-                <input type="date" required value={payForm.paidDate} onChange={(e) => setPayForm({ ...payForm, paidDate: e.target.value })}
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition-all duration-200 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20" />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-slate-600">Payment Method</label>
-                <select value={payForm.paymentMethod} onChange={(e) => setPayForm({ ...payForm, paymentMethod: e.target.value })}
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition-all duration-200 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20">
-                  <option value="cash">Cash</option>
-                  <option value="bank_transfer">Bank Transfer</option>
-                  <option value="cheque">Cheque</option>
-                  <option value="online">Online Payment</option>
-                </select>
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-slate-600">Receipt Number</label>
-                <input type="text" value={payForm.receiptNumber} onChange={(e) => setPayForm({ ...payForm, receiptNumber: e.target.value })}
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20" placeholder="Optional receipt #" />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-slate-600">Notes</label>
-                <textarea rows={2} value={payForm.notes} onChange={(e) => setPayForm({ ...payForm, notes: e.target.value })}
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20" placeholder="Optional notes" />
-              </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setPayModal(null)} className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-medium text-slate-600 transition-all duration-200 hover:bg-slate-50 active:scale-[0.97]">Cancel</button>
-                <button type="submit" disabled={saving} className="rounded-xl bg-gradient-to-br from-brand-600 to-brand-700 px-5 py-2.5 text-sm font-medium text-white shadow-md transition-all duration-200 hover:from-brand-700 hover:to-brand-800 active:scale-[0.97] disabled:opacity-50">
-                  {saving ? "Recording..." : "Record Payment"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            <div className="flex justify-end gap-3 pt-2">
+              <Button variant="secondary" type="button" onClick={() => setPayModal(null)}>Cancel</Button>
+              <Button type="submit" disabled={saving} loading={saving}>Record Payment</Button>
+            </div>
+          </form>
+        )}
+      </Modal>
     </div>
   );
 }

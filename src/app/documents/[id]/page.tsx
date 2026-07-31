@@ -3,109 +3,72 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { startTransition } from "react";
-import { ArrowLeft, Printer, Download } from "lucide-react";
+import { ArrowLeft, Printer } from "lucide-react";
+import Button from "@/components/Button";
+import Spinner from "@/components/Spinner";
 
 function formatCurrency(amount: string | number) {
   const num = typeof amount === "string" ? parseFloat(amount) : amount;
   if (isNaN(num)) return "Rs. 0";
   return new Intl.NumberFormat("en-PK", {
-    style: "currency",
-    currency: "PKR",
-    maximumFractionDigits: 0,
+    style: "currency", currency: "PKR", maximumFractionDigits: 0,
   }).format(num);
 }
 
-function formatCurrencyWords(amount: string | number): string {
-  const num = typeof amount === "string" ? parseFloat(amount) : amount;
-  if (isNaN(num)) return "Zero";
-  
-  const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
-    'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
-  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-
-  function convert(n: number): string {
-    if (n < 20) return ones[n];
-    if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? ' ' + ones[n % 10] : '');
-    if (n < 1000) return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' and ' + convert(n % 100) : '');
-    if (n < 100000) return convert(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 ? ' ' + convert(n % 1000) : '');
-    if (n < 10000000) return convert(Math.floor(n / 100000)) + ' Lakh' + (n % 100000 ? ' ' + convert(n % 100000) : '');
-    return convert(Math.floor(n / 10000000)) + ' Crore' + (n % 10000000 ? ' ' + convert(n % 10000000) : '');
-  }
-
-  const rupees = Math.floor(num);
-  const paisa = Math.round((num - rupees) * 100);
-  let result = 'Rupees ' + convert(rupees);
-  if (paisa > 0) result += ' and ' + convert(paisa) + ' Paisa';
-  result += ' Only';
-  return result;
+function formatDate(dateStr: string | null) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  const months = ["January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"];
+  return `${d.getDate()} Day of ${months[d.getMonth()]}, ${d.getFullYear()}`;
 }
 
-function formatDate(dateStr: string | null) {
-  if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleDateString("en-PK", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+function formatDateSimple(dateStr: string | null) {
+  if (!dateStr) return "_____";
+  const d = new Date(dateStr);
+  return `${d.getDate()}-${d.getMonth() + 1}-${d.getFullYear()}`;
+}
+
+function formatDateWords(dateStr: string | null) {
+  if (!dateStr) return "_____";
+  const d = new Date(dateStr);
+  const months = ["January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"];
+  return `${d.getDate()}${d.getDate() === 1 ? "st" : d.getDate() === 2 ? "nd" : d.getDate() === 3 ? "rd" : "th"} Day of ${months[d.getMonth()]}, ${d.getFullYear()}`;
 }
 
 interface BookingDetail {
   booking: {
-    id: number;
-    salePrice: string;
-    downPayment: string;
-    paymentType: string;
-    installmentCount: number;
-    installmentFrequency: string;
-    installmentAmount: string | null;
-    bookingDate: string;
-    status: string;
-    referenceNumber: string | null;
+    id: number; salePrice: string; downPayment: string; paymentType: string;
+    installmentCount: number; installmentFrequency: string; installmentAmount: string | null;
+    bookingDate: string; status: string; referenceNumber: string | null;
   };
   project: {
-    id: number;
-    name: string;
-    unitNumber: string;
-    address: string | null;
-    size: string | null;
-    sizeUnit: string | null;
-    category: string | null;
-    price: string;
+    id: number; name: string; unitNumber: string; address: string | null;
+    size: string | null; sizeUnit: string | null; category: string | null; price: string;
   } | null;
   client: {
-    id: number;
-    name: string;
-    cnic: string;
-    phone: string;
-    email: string | null;
-    address: string | null;
+    id: number; name: string; cnic: string; phone: string; email: string | null; address: string | null;
+  } | null;
+  unit: {
+    id: number; unitNumber: string; name: string | null; propertyType: string;
+    floor: string | null; block: string | null; area: string | null; areaUnit: string;
+    bedrooms: number | null; bathrooms: number | null; price: string; status: string;
   } | null;
   installments: Array<{
-    id: number;
-    installmentNumber: number;
-    dueDate: string;
-    amount: string;
-    paidAmount: string;
-    paidDate: string | null;
-    status: string;
-    receiptNumber: string | null;
-    paymentMethod: string | null;
+    id: number; installmentNumber: number; dueDate: string; amount: string;
+    paidAmount: string; paidDate: string | null; status: string;
+    receiptNumber: string | null; paymentMethod: string | null;
   }>;
   payments: Array<{
-    id: number;
-    amount: string;
-    paymentDate: string;
-    paymentMethod: string | null;
+    id: number; amount: string; paymentDate: string; paymentMethod: string | null;
     receiptNumber: string | null;
   }>;
 }
 
-const CATEGORIES: Record<string, string> = {
-  residential_plot: "Residential Plot",
-  house: "House",
-  apartment: "Apartment",
-  commercial: "Commercial",
-  farmhouse: "Farm House",
+const PROPERTY_TYPES: Record<string, string> = {
+  apartment: "Apartment", office: "Office", shop: "Shop",
+  villa: "Villa", plot: "Plot", warehouse: "Warehouse", commercial: "Commercial",
 };
 
 export default function DocumentPage() {
@@ -120,428 +83,196 @@ export default function DocumentPage() {
       if (!res.ok) throw new Error("Not found");
       const d = await res.json();
       setData(d);
-    } catch {
-      // ignore
-    } finally {
-      setLoading(false);
-    }
+    } catch { /* ignore */ }
+    finally { setLoading(false); }
   }, [params.id]);
 
-  useEffect(() => {
-    startTransition(() => fetchData());
-  }, [fetchData]);
+  useEffect(() => { startTransition(() => fetchData()); }, [fetchData]);
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const handlePrint = () => { window.print(); };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-500 border-t-transparent" />
-      </div>
-    );
-  }
+  if (loading) return <Spinner />;
 
   if (!data) {
     return (
       <div className="py-20 text-center">
         <p className="text-lg font-medium text-slate-500">Booking not found</p>
-        <button
-          onClick={() => router.back()}
-          className="mt-4 inline-flex items-center gap-2 text-sm text-brand-600 hover:underline"
-        >
-          <ArrowLeft size={14} />
-          Go Back
+        <button onClick={() => router.back()} className="mt-4 inline-flex items-center gap-2 text-sm text-brand-600 hover:underline">
+          <ArrowLeft size={14} /> Go Back
         </button>
       </div>
     );
   }
 
-  const totalPaid = data.installments.reduce(
-    (sum, i) => sum + parseFloat(i.paidAmount || "0"),
-    0
-  );
+  const totalPaid = data.installments.reduce((sum, i) => sum + parseFloat(i.paidAmount || "0"), 0);
   const downPaymentAmount = parseFloat(data.booking.downPayment || "0");
   const grandTotalPaid = totalPaid + downPaymentAmount;
   const salePrice = parseFloat(data.booking.salePrice || "0");
   const remaining = salePrice - grandTotalPaid;
+  const isInstallment = data.booking.paymentType === "installment";
+  const bookingDate = data.booking.bookingDate;
 
-  const today = new Date().toLocaleDateString("en-PK", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const day = bookingDate ? new Date(bookingDate).getDate() : "____";
+  const month = bookingDate ? new Date(bookingDate).toLocaleString("default", { month: "long" }) : "____________";
+  const year = bookingDate ? new Date(bookingDate).getFullYear() : "20____";
+
+  const nextDueInstallment = data.installments.find((i) => i.status === "pending");
 
   return (
     <div>
-      {/* Action buttons - hidden in print */}
       <div className="no-print mb-6 flex items-center justify-between">
-        <button
-          onClick={() => router.back()}
-          className="inline-flex items-center gap-2 text-sm text-slate-500 transition-colors hover:text-brand-600"
-        >
-          <ArrowLeft size={16} />
-          Back
-        </button>
-        <button
-          onClick={handlePrint}
-          className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white shadow-md shadow-brand-600/30 transition-colors hover:bg-brand-700"
-        >
-          <Printer size={16} />
-          Print / Save as PDF
-        </button>
+        <Button variant="ghost" onClick={() => router.back()}>
+          <ArrowLeft size={16} /> Back
+        </Button>
+        <Button onClick={handlePrint}>
+          <Printer size={16} /> Print / Save as PDF
+        </Button>
       </div>
 
-      {/* Document Content - A4 style */}
-      <div
-        id="print-area"
-        className="mx-auto max-w-[210mm] rounded-xl border border-slate-200 bg-white p-8 shadow-lg sm:p-12"
-        style={{ fontFamily: "'Times New Roman', Times, serif" }}
+      <div id="print-area" className="mx-auto max-w-[210mm] bg-white p-10 sm:p-12 sm:pb-8"
+        style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: "12pt", lineHeight: "1.6", color: "#000" }}
       >
-        {/* Letterhead */}
-        <div className="mb-8 border-b-2 border-brand-700 pb-6 text-center">
-          <h1
-            className="text-3xl font-bold text-brand-800"
-            style={{ fontFamily: "Arial, sans-serif", letterSpacing: "0.05em" }}
-          >
-            BUILD HUB
-          </h1>
-          <p
-            className="mt-1 text-sm text-slate-600"
-            style={{ fontFamily: "Arial, sans-serif" }}
-          >
-            Your Trusted Property Partner
-          </p>
-          <p
-            className="mt-1 text-xs text-slate-500"
-            style={{ fontFamily: "Arial, sans-serif" }}
-          >
-            Lahore, Pakistan | Tel: +92-300-0000000 | Email: info@buildhub.com.pk
-          </p>
-        </div>
-
         {/* Title */}
-        <div className="mb-6 text-center">
-          <h2 className="text-xl font-bold text-slate-900 underline underline-offset-4">
-            SALE AGREEMENT
-          </h2>
-          <p className="mt-2 text-sm text-slate-600">
-            Reference No: <strong>{data.booking.referenceNumber}</strong> |
-            Date: <strong>{today}</strong>
+        <h1 className="text-center text-2xl font-bold tracking-wide" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
+          PURCHASE AGREEMENT
+        </h1>
+        <hr className="my-4 border-t border-black" />
+
+        {/* 1. Agreement Date */}
+        <div className="mb-6">
+          <h2 className="mb-2 text-base font-bold">1. AGREEMENT DATE</h2>
+          <p className="mb-1 text-sm">This Purchase Agreement (&ldquo;Agreement&rdquo;) is entered into on:</p>
+          <p className="text-sm">
+            <span className="border-b border-black px-1 font-medium">{String(day)}</span> Day of{" "}
+            <span className="border-b border-black px-1 font-medium">{String(month)}</span>,{" "}
+            <span className="border-b border-black px-1 font-medium">{String(year)}</span>
           </p>
         </div>
 
-        {/* Parties */}
+        {/* 2. Seller Information */}
         <div className="mb-6">
-          <h3 className="mb-2 text-sm font-bold text-slate-800">
-            THIS AGREEMENT is made on {formatDate(data.booking.bookingDate)}
-          </h3>
-          <p className="text-sm text-slate-700">
-            <strong>BETWEEN</strong>
-          </p>
-          <div className="ml-6 mt-2 text-sm text-slate-700">
-            <p>
-              <strong>Build Hub</strong> (hereinafter referred to as
-              the &quot;First Party&quot; or &quot;Seller&quot;)
-            </p>
-          </div>
-          <p className="mt-3 text-sm text-slate-700">
-            <strong>AND</strong>
-          </p>
-          <div className="ml-6 mt-2 text-sm text-slate-700">
-            <p>
-              <strong>{data.client?.name || "N/A"}</strong> (hereinafter
-              referred to as the &quot;Second Party&quot; or &quot;Purchaser&quot;)
-            </p>
-            <p>CNIC: {data.client?.cnic || "N/A"}</p>
-            <p>Phone: {data.client?.phone || "N/A"}</p>
-            {data.client?.email && <p>Email: {data.client.email}</p>}
-            {data.client?.address && <p>Address: {data.client.address}</p>}
-          </div>
-        </div>
-
-        {/* Property Details */}
-        <div className="mb-6">
-          <h3 className="mb-2 border-b border-slate-300 pb-1 text-sm font-bold text-slate-800">
-            1. PROPERTY DETAILS
-          </h3>
+          <h2 className="mb-2 text-base font-bold">2. SELLER INFORMATION</h2>
           <table className="w-full text-sm">
             <tbody>
-              <tr className="border-b border-slate-100">
-                <td className="py-2 font-medium text-slate-700 w-1/3">
-                  Project Name
-                </td>
-                <td className="py-2 text-slate-800">
-                  {data.project?.name || "N/A"}
-                </td>
-              </tr>
-              <tr className="border-b border-slate-100">
-                <td className="py-2 font-medium text-slate-700">
-                  Unit/Plot Number
-                </td>
-                <td className="py-2 text-slate-800">
-                  {data.project?.unitNumber || "N/A"}
-                </td>
-              </tr>
-              <tr className="border-b border-slate-100">
-                <td className="py-2 font-medium text-slate-700">
-                  Category
-                </td>
-                <td className="py-2 text-slate-800">
-                  {CATEGORIES[data.project?.category || ""] || "N/A"}
-                </td>
-              </tr>
-              {data.project?.size && (
-                <tr className="border-b border-slate-100">
-                  <td className="py-2 font-medium text-slate-700">Size</td>
-                  <td className="py-2 text-slate-800">
-                    {data.project.size} {data.project.sizeUnit}
-                  </td>
-                </tr>
-              )}
-              {data.project?.address && (
-                <tr className="border-b border-slate-100">
-                  <td className="py-2 font-medium text-slate-700">
-                    Location
-                  </td>
-                  <td className="py-2 text-slate-800">
-                    {data.project.address}
-                  </td>
-                </tr>
-              )}
+              <tr><td className="w-28 py-1 align-top font-medium">Seller Name:</td><td className="border-b border-black py-1">Build Hub</td></tr>
+              <tr><td className="w-28 py-1 align-top font-medium">Seller CNIC:</td><td className="border-b border-black py-1">_________________________</td></tr>
+              <tr><td className="w-28 py-1 align-top font-medium">Seller Address:</td><td className="border-b border-black py-1">Lahore, Pakistan</td></tr>
+              <tr><td className="w-28 py-1 align-top font-medium">Seller Phone:</td><td className="border-b border-black py-1">+92-300-0000000</td></tr>
             </tbody>
           </table>
         </div>
 
-        {/* Payment Terms */}
+        {/* 3. Buyer Information */}
         <div className="mb-6">
-          <h3 className="mb-2 border-b border-slate-300 pb-1 text-sm font-bold text-slate-800">
-            2. PAYMENT TERMS
-          </h3>
+          <h2 className="mb-2 text-base font-bold">3. BUYER INFORMATION</h2>
           <table className="w-full text-sm">
             <tbody>
-              <tr className="border-b border-slate-100">
-                <td className="py-2 font-medium text-slate-700 w-1/3">
-                  Total Sale Price
-                </td>
-                <td className="py-2 font-bold text-slate-800">
-                  {formatCurrency(salePrice)}
-                </td>
-              </tr>
-              <tr className="border-b border-slate-100">
-                <td className="py-2 font-medium text-slate-700">
-                  In Words
-                </td>
-                <td className="py-2 text-slate-700 italic">
-                  {formatCurrencyWords(salePrice)}
-                </td>
-              </tr>
-              <tr className="border-b border-slate-100">
-                <td className="py-2 font-medium text-slate-700">
-                  Down Payment
-                </td>
-                <td className="py-2 text-slate-800">
-                  {formatCurrency(downPaymentAmount)}
-                </td>
-              </tr>
-              <tr className="border-b border-slate-100">
-                <td className="py-2 font-medium text-slate-700">
-                  Payment Type
-                </td>
-                <td className="py-2 text-slate-800">
-                  {data.booking.paymentType === "full"
-                    ? "Full Payment"
-                    : `Installment Plan (${data.booking.installmentCount} ${data.booking.installmentFrequency} installments)`}
-                </td>
-              </tr>
-              {data.booking.paymentType === "installment" &&
-                data.booking.installmentAmount && (
-                  <tr className="border-b border-slate-100">
-                    <td className="py-2 font-medium text-slate-700">
-                      Each Installment
-                    </td>
-                    <td className="py-2 text-slate-800">
-                      {formatCurrency(data.booking.installmentAmount)}
-                    </td>
-                  </tr>
-                )}
-              <tr className="border-b border-slate-100">
-                <td className="py-2 font-medium text-slate-700">
-                  Total Paid
-                </td>
-                <td className="py-2 text-emerald-700 font-bold">
-                  {formatCurrency(grandTotalPaid)}
-                </td>
-              </tr>
-              <tr>
-                <td className="py-2 font-medium text-slate-700">
-                  Remaining Balance
-                </td>
-                <td className="py-2 text-red-700 font-bold">
-                  {formatCurrency(remaining)}
-                </td>
-              </tr>
+              <tr><td className="w-28 py-1 align-top font-medium">Buyer Name:</td><td className="border-b border-black py-1">{data.client?.name || "_________________________"}</td></tr>
+              <tr><td className="w-28 py-1 align-top font-medium">Buyer CNIC:</td><td className="border-b border-black py-1">{data.client?.cnic || "_________________________"}</td></tr>
+              <tr><td className="w-28 py-1 align-top font-medium">Buyer Address:</td><td className="border-b border-black py-1">{data.client?.address || "_________________________"}</td></tr>
+              <tr><td className="w-28 py-1 align-top font-medium">Buyer Phone:</td><td className="border-b border-black py-1">{data.client?.phone || "_________________________"}</td></tr>
             </tbody>
           </table>
         </div>
 
-        {/* Installment Schedule */}
-        {data.installments.length > 0 && (
-          <div className="mb-6">
-            <h3 className="mb-2 border-b border-slate-300 pb-1 text-sm font-bold text-slate-800">
-              3. INSTALLMENT SCHEDULE
-            </h3>
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-slate-300 bg-slate-50">
-                  <th className="px-2 py-2 text-left font-medium text-slate-700">
-                    #
-                  </th>
-                  <th className="px-2 py-2 text-left font-medium text-slate-700">
-                    Due Date
-                  </th>
-                  <th className="px-2 py-2 text-left font-medium text-slate-700">
-                    Amount
-                  </th>
-                  <th className="px-2 py-2 text-left font-medium text-slate-700">
-                    Paid
-                  </th>
-                  <th className="px-2 py-2 text-left font-medium text-slate-700">
-                    Date Paid
-                  </th>
-                  <th className="px-2 py-2 text-left font-medium text-slate-700">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {downPaymentAmount > 0 && (
-                  <tr className="border-b border-slate-100">
-                    <td className="px-2 py-1.5">DP</td>
-                    <td className="px-2 py-1.5">
-                      {formatDate(data.booking.bookingDate)}
-                    </td>
-                    <td className="px-2 py-1.5">
-                      {formatCurrency(downPaymentAmount)}
-                    </td>
-                    <td className="px-2 py-1.5">
-                      {formatCurrency(downPaymentAmount)}
-                    </td>
-                    <td className="px-2 py-1.5">
-                      {formatDate(data.booking.bookingDate)}
-                    </td>
-                    <td className="px-2 py-1.5">Paid</td>
-                  </tr>
-                )}
-                {data.installments.map((inst) => (
-                  <tr key={inst.id} className="border-b border-slate-100">
-                    <td className="px-2 py-1.5">{inst.installmentNumber}</td>
-                    <td className="px-2 py-1.5">
-                      {formatDate(inst.dueDate)}
-                    </td>
-                    <td className="px-2 py-1.5">
-                      {formatCurrency(inst.amount)}
-                    </td>
-                    <td className="px-2 py-1.5">
-                      {formatCurrency(inst.paidAmount)}
-                    </td>
-                    <td className="px-2 py-1.5">
-                      {formatDate(inst.paidDate)}
-                    </td>
-                    <td className="px-2 py-1.5 capitalize">
-                      {inst.status}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Terms & Conditions */}
+        {/* 4. Property Information */}
         <div className="mb-6">
-          <h3 className="mb-2 border-b border-slate-300 pb-1 text-sm font-bold text-slate-800">
-            4. TERMS &amp; CONDITIONS
-          </h3>
-          <ol className="ml-4 list-decimal space-y-2 text-xs text-slate-700">
-            <li>
-              The Purchaser agrees to purchase the above-described property from
-              the Seller at the agreed total sale price.
-            </li>
-            <li>
-              The Purchaser has paid the down payment as specified above and
-              agrees to pay the remaining balance according to the agreed payment
-              schedule.
-            </li>
-            <li>
-              In case of default in payment of any installment for a period
-              exceeding 30 days from the due date, the Seller reserves the right
-              to cancel this agreement and forfeit the amounts already paid, in
-              whole or in part, at the Seller&apos;s discretion.
-            </li>
-            <li>
-              The Seller shall transfer the ownership/title documents to the
-              Purchaser only after full payment of the sale price has been
-              received.
-            </li>
-            <li>
-              All payments shall be made through bank transfer, pay order, or
-              cash. Cheque payments are subject to realization.
-            </li>
-            <li>
-              Any dispute arising out of this agreement shall be subject to the
-              jurisdiction of the courts in Lahore, Pakistan.
-            </li>
-            <li>
-              This agreement constitutes the entire understanding between the
-              parties and supersedes all prior negotiations, representations, or
-              agreements.
-            </li>
-            <li>
-              Any modification to this agreement must be made in writing and
-              signed by both parties.
-            </li>
+          <h2 className="mb-2 text-base font-bold">4. PROPERTY INFORMATION</h2>
+          <table className="w-full text-sm">
+            <tbody>
+              <tr><td className="w-32 py-1 align-top font-medium">Project Name:</td><td className="border-b border-black py-1">{data.project?.name || data.unit ? "—" : "_________________________"}</td></tr>
+              <tr><td className="w-32 py-1 align-top font-medium">Unit Number:</td><td className="border-b border-black py-1">{data.project?.unitNumber || data.unit?.unitNumber || "_________________________"}</td></tr>
+              <tr><td className="w-32 py-1 align-top font-medium">Unit Type:</td><td className="border-b border-black py-1">{data.unit ? (PROPERTY_TYPES[data.unit.propertyType] || data.unit.propertyType) : "_________________________"}</td></tr>
+              <tr><td className="w-32 py-1 align-top font-medium">Floor:</td><td className="border-b border-black py-1">{data.unit?.floor || "_________________________"}</td></tr>
+              <tr><td className="w-32 py-1 align-top font-medium">Area:</td><td className="border-b border-black py-1">{data.unit?.area ? `${data.unit.area} ${data.unit.areaUnit}` : data.project?.size ? `${data.project.size} ${data.project.sizeUnit || ""}` : "_________________________"}</td></tr>
+              <tr><td className="w-32 py-1 align-top font-medium">Block:</td><td className="border-b border-black py-1">{data.unit?.block || "_________________________"}</td></tr>
+              <tr><td className="w-32 py-1 align-top font-medium">Property Address:</td><td className="border-b border-black py-1">{data.project?.address || "_________________________"}</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* 5. Purchase Price */}
+        <div className="mb-6">
+          <h2 className="mb-2 text-base font-bold">5. PURCHASE PRICE</h2>
+          <table className="w-full text-sm">
+            <tbody>
+              <tr><td className="w-40 py-1 align-top font-medium">Purchase Price:</td><td className="border-b border-black py-1 text-right font-bold">{formatCurrency(salePrice)}</td></tr>
+              <tr><td className="w-40 py-1 align-top font-medium">Amount Paid:</td><td className="border-b border-black py-1 text-right font-bold">{formatCurrency(grandTotalPaid)}</td></tr>
+              <tr><td className="w-40 py-1 align-top font-medium">Remaining Balance:</td><td className="border-b border-black py-1 text-right font-bold">{formatCurrency(remaining)}</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* 6. Payment Method */}
+        <div className="mb-6">
+          <h2 className="mb-2 text-base font-bold">6. PAYMENT METHOD</h2>
+          <div className="space-y-1 text-sm">
+            <p><span className="font-mono">{isInstallment ? "\u25a0" : "\u25a1"}</span> Cash</p>
+            <p><span className="font-mono">{isInstallment ? "\u25a1" : "\u25a1"}</span> Bank Transfer</p>
+            <p><span className="font-mono">{isInstallment ? "\u25a1" : "\u25a1"}</span> Cheque</p>
+            <p><span className="font-mono">{isInstallment ? "\u25a0" : "\u25a1"}</span> Installments</p>
+          </div>
+          {isInstallment && (
+            <div className="mt-3 pl-6 text-sm">
+              <table className="w-full text-sm">
+                <tbody>
+                  <tr><td className="w-48 py-1 font-medium">Number of Installments:</td><td className="border-b border-black py-1">{data.booking.installmentCount}</td></tr>
+                  <tr><td className="w-48 py-1 font-medium">Monthly Installment Amount:</td><td className="border-b border-black py-1">{data.booking.installmentAmount ? formatCurrency(data.booking.installmentAmount) : "—"}</td></tr>
+                  <tr><td className="w-48 py-1 font-medium">Next Due Date:</td><td className="border-b border-black py-1">{nextDueInstallment ? formatDateSimple(nextDueInstallment.dueDate) : "—"}</td></tr>
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* 7. Terms and Conditions */}
+        <div className="mb-6">
+          <h2 className="mb-2 text-base font-bold">7. TERMS AND CONDITIONS</h2>
+          <ol className="ml-5 list-decimal space-y-1.5 text-sm">
+            <li>The Seller agrees to sell the above-described property to the Buyer at the agreed purchase price.</li>
+            <li>The Buyer agrees to purchase the property and make payment according to the terms set forth in this Agreement.</li>
+            <li>Ownership and title documents shall be transferred to the Buyer only after full payment of the purchase price has been received.</li>
+            <li>Late payments may incur additional charges or penalties as determined by the Seller.</li>
+            <li>Both parties agree to comply with all applicable laws and regulations governing the sale of property.</li>
+            <li>This Agreement shall become effective upon signing by both parties.</li>
+            <li>Any modification to this Agreement must be made in writing and signed by both parties.</li>
+            <li>This Agreement constitutes the entire understanding between the parties with respect to the subject matter hereof.</li>
           </ol>
         </div>
 
-        {/* Signatures */}
-        <div className="mt-12 grid grid-cols-2 gap-8">
-          <div>
-            <div className="mb-2 h-16 border-b border-slate-400" />
-            <p className="text-sm font-bold text-slate-800">
-              First Party (Seller)
-            </p>
-            <p className="text-xs text-slate-600">
-              Authorized Representative
-            </p>
-          <p className="text-xs text-slate-600">Build Hub</p>
-            <p className="mt-2 text-xs text-slate-500">Date: _______________</p>
-          </div>
-          <div>
-            <div className="mb-2 h-16 border-b border-slate-400" />
-            <p className="text-sm font-bold text-slate-800">
-              Second Party (Purchaser)
-            </p>
-            <p className="text-xs text-slate-600">
-              {data.client?.name || "N/A"}
-            </p>
-            <p className="text-xs text-slate-600">
-              CNIC: {data.client?.cnic || "N/A"}
-            </p>
-            <p className="mt-2 text-xs text-slate-500">Date: _______________</p>
+        {/* 8. Signatures */}
+        <div className="mb-6">
+          <h2 className="mb-3 text-base font-bold">8. SIGNATURES</h2>
+          <div className="grid grid-cols-2 gap-x-8 gap-y-6 text-sm">
+            <div>
+              <p className="mb-1 font-medium">Seller Signature</p>
+              <div className="border-b border-black h-8 mb-1" />
+              <p className="text-xs text-gray-600">Build Hub</p>
+            </div>
+            <div>
+              <p className="mb-1 font-medium">Buyer Signature</p>
+              <div className="border-b border-black h-8 mb-1" />
+              <p className="text-xs text-gray-600">{data.client?.name || "_________________________"}</p>
+            </div>
+            <div>
+              <p className="mb-1 font-medium">Witness 1</p>
+              <div className="border-b border-black h-8 mb-1" />
+            </div>
+            <div>
+              <p className="mb-1 font-medium">Witness 2</p>
+              <div className="border-b border-black h-8 mb-1" />
+            </div>
+            <div className="col-span-2">
+              <p className="mb-1 font-medium">Date</p>
+              <div className="border-b border-black h-8 mb-1" />
+            </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="mt-10 border-t border-slate-200 pt-4 text-center text-xs text-slate-400">
-          <p>
-            This is a computer-generated document from Build Hub
-            Management System.
-          </p>
-          <p>
-            Ref: {data.booking.referenceNumber} | Generated: {today}
-          </p>
+        <div className="mt-8 border-t border-black pt-3 text-center text-xs text-gray-500">
+          <p>Ref: {data.booking.referenceNumber || "N/A"} &middot; Generated: {new Date().toLocaleDateString("en-PK", { year: "numeric", month: "long", day: "numeric" })}</p>
+          <p className="mt-0.5">This is a computer-generated document from Build Hub Management System.</p>
         </div>
       </div>
     </div>

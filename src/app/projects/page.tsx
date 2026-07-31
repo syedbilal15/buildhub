@@ -1,19 +1,28 @@
 "use client";
 
 import { useEffect, useState, useCallback, startTransition } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import {
   Plus,
-  Search,
-  Pencil,
-  Trash2,
-  Eye,
-  X,
   Building2,
   Layers,
   MapPin,
+  Eye,
+  Pencil,
+  Trash2,
 } from "lucide-react";
+import Button from "@/components/Button";
+import Input from "@/components/Input";
+import Select from "@/components/Select";
+import Textarea from "@/components/Textarea";
+import Modal from "@/components/Modal";
+import SearchInput from "@/components/SearchInput";
+import Badge from "@/components/Badge";
+import Spinner from "@/components/Spinner";
+import Toast from "@/components/Toast";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import MultiSelect from "@/components/MultiSelect";
 
 interface ProjectWithCount {
   project: {
@@ -29,64 +38,70 @@ interface ProjectWithCount {
 }
 
 const STATUSES = [
-  { value: "active", label: "Active", color: "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-600/20" },
-  { value: "completed", label: "Completed", color: "bg-blue-100 text-blue-700 ring-1 ring-blue-600/20" },
-  { value: "on_hold", label: "On Hold", color: "bg-amber-100 text-amber-700 ring-1 ring-amber-600/20" },
+  { value: "active", label: "Active" },
+  { value: "completed", label: "Completed" },
+  { value: "on_hold", label: "On Hold" },
 ];
 
 function formatDate(dateStr: string) {
   if (!dateStr) return "—";
   return new Date(dateStr).toLocaleDateString("en-PK", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
+    year: "numeric", month: "short", day: "numeric",
   });
 }
 
-const emptyForm = {
-  name: "",
-  projectCode: "",
-  location: "",
-  description: "",
-  status: "active",
-};
+const emptyForm = { name: "", projectCode: "", location: "", description: "", status: "active" };
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<ProjectWithCount[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const [editingProject, setEditingProject] = useState<ProjectWithCount["project"] | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleteError, setDeleteError] = useState("");
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [assignedUnitIds, setAssignedUnitIds] = useState<number[]>([]);
+  const [allUnits, setAllUnits] = useState<{ value: number; label: string }[]>([]);
+  const [formError, setFormError] = useState("");
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const fetchProjects = useCallback(async () => {
     const params = new URLSearchParams();
     if (search) params.set("search", search);
     if (statusFilter) params.set("status", statusFilter);
-
     const res = await fetch(`/api/projects?${params}`);
-    const data = await res.json();
-    setProjects(data);
+    setProjects(await res.json());
     setLoading(false);
   }, [search, statusFilter]);
 
-  useEffect(() => {
-    startTransition(() => fetchProjects());
-  }, [fetchProjects]);
+  useEffect(() => { startTransition(() => fetchProjects()); }, [fetchProjects]);
 
-  const openAddForm = () => {
-    setEditingProject(null);
-    setForm(emptyForm);
-    setShowForm(true);
+  const loadUnits = async () => {
+    if (allUnits.length > 0) return;
+    const res = await fetch("/api/units");
+    const data = await res.json();
+    setAllUnits(
+      data.map((item: { unit: { id: number; unitNumber: string; name: string | null } }) => ({
+        value: item.unit.id,
+        label: `${item.unit.unitNumber}${item.unit.name ? ` - ${item.unit.name}` : ""}`,
+      }))
+    );
   };
 
-  const openEditForm = (item: ProjectWithCount) => {
+  const openAddForm = async () => {
+    setEditingProject(null);
+    setForm(emptyForm);
+    setAssignedUnitIds([]);
+    setFormError("");
+    setShowForm(true);
+    loadUnits();
+  };
+
+  const openEditForm = async (item: ProjectWithCount) => {
     setEditingProject(item.project);
     setForm({
       name: item.project.name,
@@ -96,347 +111,203 @@ export default function ProjectsPage() {
       status: item.project.status,
     });
     setShowForm(true);
+    const [unitsRes, projRes] = await Promise.all([
+      fetch("/api/units"),
+      fetch(`/api/projects/${item.project.id}`),
+    ]);
+    const unitsData = await unitsRes.json();
+    setAllUnits(
+      unitsData.map((u: { unit: { id: number; unitNumber: string; name: string | null } }) => ({
+        value: u.unit.id,
+        label: `${u.unit.unitNumber}${u.unit.name ? ` - ${u.unit.name}` : ""}`,
+      }))
+    );
+    const projData = await projRes.json();
+    setAssignedUnitIds((projData.assignedUnits || []).map((u: { id: number }) => u.id));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError("");
     setSaving(true);
-
     try {
-      if (editingProject) {
-        await fetch(`/api/projects/${editingProject.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(form),
-        });
-        setShowForm(false);
-        fetchProjects();
-      } else {
-        const res = await fetch("/api/projects", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(form),
-        });
+      const payload = { ...form, assignedUnitIds };
+      const res = editingProject
+        ? await fetch(`/api/projects/${editingProject.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          })
+        : await fetch("/api/projects", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+      if (!res.ok) {
         const data = await res.json();
-        if (!res.ok) {
-          console.error(data);
-          return;
-        }
-        router.push(`/projects/${data.id}?addUnit=true`);
+        setFormError(data.error || "Failed to save project");
+        return;
       }
-    } catch (err) {
-      console.error(err);
+      setShowForm(false);
+      setAssignedUnitIds([]);
+      setToast({ message: editingProject ? "Project updated successfully" : `Project "${form.name}" created`, type: "success" });
+      fetchProjects();
+    } catch {
+      setFormError("Network error. Please try again.");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async () => {
+    if (!deleteId) return;
     setDeleteLoading(true);
     setDeleteError("");
     try {
-      const res = await fetch(`/api/projects/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/projects/${deleteId}`, { method: "DELETE" });
       const data = await res.json();
-      if (!res.ok) {
-        setDeleteError(data.error || "Failed to delete project");
-        return;
-      }
-      setDeleteConfirm(null);
+      if (!res.ok) { setDeleteError(data.error || "Failed to delete"); return; }
+      setDeleteId(null);
+      setToast({ message: "Project deleted", type: "success" });
       fetchProjects();
-    } catch (err) {
+    } catch {
       setDeleteError("Network error. Please try again.");
     } finally {
       setDeleteLoading(false);
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const s = STATUSES.find((st) => st.value === status);
-    return s ? s.color : "bg-slate-100 text-slate-600";
-  };
+  const containerVariants: any = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
+  const itemVariants: any = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.3 } } };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-brand-500 border-t-transparent" />
-      </div>
-    );
-  }
+  if (loading) return <Spinner />;
 
   return (
-    <div className="animate-fade-in">
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            Projects
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Manage your property projects
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Projects</h1>
+          <p className="mt-1 text-sm text-slate-500">Manage your property projects</p>
         </div>
-        <button
-          onClick={openAddForm}
-          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-brand-600 to-brand-700 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-brand-600/30 transition-all duration-200 hover:from-brand-700 hover:to-brand-800 active:scale-[0.97]"
-        >
-          <Plus size={16} />
-          Add New Project
-        </button>
+        <Button onClick={openAddForm}><Plus size={16} /> Add New Project</Button>
       </div>
 
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row">
-        <div className="relative flex-1">
-          <Search
-            size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-          />
-          <input
-            type="text"
-            placeholder="Search projects..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-4 text-sm text-slate-800 outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20"
-          />
-        </div>
-        <select
+      {/* Search + Filter */}
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <SearchInput value={search} onChange={setSearch} placeholder="Search projects..." />
+        <Select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition-all duration-200 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20"
-        >
-          <option value="">All Statuses</option>
-          {STATUSES.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.label}
-            </option>
-          ))}
-        </select>
+          options={STATUSES}
+          placeholder="All Statuses"
+          className="sm:w-44"
+        />
       </div>
 
+      {/* Project Cards */}
       {projects.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-300 bg-white py-16 text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-50">
             <Building2 size={36} className="text-slate-300" />
           </div>
-          <p className="text-sm font-medium text-slate-500">
-            No projects found
-          </p>
+          <p className="text-sm font-medium text-slate-500">No projects found</p>
           <p className="mt-1 text-xs text-slate-400">
-            {search || statusFilter
-              ? "Try adjusting your filters"
-              : "Add your first project to get started"}
+            {search || statusFilter ? "Try adjusting your filters" : "Add your first project to get started"}
           </p>
         </div>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
           {projects.map((item) => (
-            <div key={item.project.id} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <motion.div key={item.project.id} variants={itemVariants} className="card-hover rounded-xl border border-slate-200 bg-white p-5 shadow-sm" whileHover={{ y: -2, boxShadow: "0 8px 30px rgba(0,0,0,0.08)" }}>
               <div className="mb-4 flex items-start justify-between gap-3">
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
                     {item.project.projectCode || "Project"}
                   </p>
-                  <h3 className="text-base font-semibold text-slate-900">
-                    {item.project.name}
-                  </h3>
-                  <p className="mt-1 text-sm text-slate-500">
-                    {item.project.location || "No location available"}
-                  </p>
+                  <h3 className="truncate text-base font-semibold text-slate-900">{item.project.name}</h3>
+                  <p className="mt-0.5 text-sm text-slate-500">{item.project.location || "No location"}</p>
                 </div>
-                <span
-                  className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${getStatusBadge(
-                    item.project.status
-                  )}`}
-                >
-                  {item.project.status.charAt(0).toUpperCase() +
-                    item.project.status.slice(1).replace("_", " ")}
-                </span>
+                <Badge>{item.project.status}</Badge>
               </div>
 
               <div className="mb-4 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
                 <div className="flex items-center gap-2">
-                  <Layers size={14} className="text-slate-400" />
+                  <Layers size={14} className="text-slate-400 shrink-0" />
                   <span>{item.unitCount} unit{item.unitCount !== 1 ? "s" : ""}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <MapPin size={14} className="text-slate-400" />
-                  <span>{item.project.location || "Location not set"}</span>
+                  <MapPin size={14} className="text-slate-400 shrink-0" />
+                  <span className="truncate">{item.project.location || "Location not set"}</span>
                 </div>
                 {item.project.description && (
-                  <div className="col-span-full text-sm text-slate-500">
+                  <div className="col-span-full text-sm text-slate-500 line-clamp-2">
                     {item.project.description}
                   </div>
                 )}
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
-                <Link
-                  href={`/projects/${item.project.id}`}
-                  className="inline-flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-sm font-medium text-brand-700 transition-all duration-200 hover:bg-brand-100"
-                >
-                  <Eye size={14} /> View Details
+              <div className="flex flex-wrap items-center gap-2">
+                <Link href={`/projects/${item.project.id}`}>
+                  <Button variant="outline" size="sm"><Eye size={14} /> View Details</Button>
                 </Link>
-                <button
-                  type="button"
-                  onClick={() => openEditForm(item)}
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 transition-all duration-200 hover:bg-slate-100"
-                >
+                <Button variant="secondary" size="sm" onClick={() => openEditForm(item)}>
                   <Pencil size={14} /> Edit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDeleteConfirm(item.project.id)}
-                  className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 transition-all duration-200 hover:bg-red-100"
-                >
+                </Button>
+                <Button variant="secondary" size="sm" onClick={() => setDeleteId(item.project.id)}>
                   <Trash2 size={14} /> Delete
-                </button>
+                </Button>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       )}
 
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="animate-scale-in max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl">
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-slate-900">
-                {editingProject ? "Edit Project" : "Add New Project"}
-              </h2>
-              <button
-                onClick={() => setShowForm(false)}
-                className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold text-slate-600">
-                    Project Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20"
-                    placeholder="e.g., Build Hub Garden Estate"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold text-slate-600">
-                    Project Code
-                  </label>
-                  <input
-                    type="text"
-                    value={form.projectCode}
-                    onChange={(e) => setForm({ ...form, projectCode: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20"
-                    placeholder="e.g., AHG-001"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-slate-600">
-                  Location
-                </label>
-                <input
-                  type="text"
-                  value={form.location}
-                  onChange={(e) => setForm({ ...form, location: e.target.value })}
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20"
-                  placeholder="e.g., Phase 7, Gulshan-e-Maymar, Karachi"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-slate-600">
-                  Status
-                </label>
-                <select
-                  value={form.status}
-                  onChange={(e) => setForm({ ...form, status: e.target.value })}
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition-all duration-200 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20"
-                >
-                  {STATUSES.map((s) => (
-                    <option key={s.value} value={s.value}>
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-slate-600">
-                  Description
-                </label>
-                <textarea
-                  rows={3}
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20"
-                  placeholder="e.g., A premium gated community with lush green parks..."
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-medium text-slate-600 transition-all duration-200 hover:bg-slate-50 active:scale-[0.97]"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="rounded-xl bg-gradient-to-br from-brand-600 to-brand-700 px-5 py-2.5 text-sm font-medium text-white shadow-md transition-all duration-200 hover:from-brand-700 hover:to-brand-800 active:scale-[0.97] disabled:opacity-50"
-                >
-                  {saving
-                    ? "Saving..."
-                    : editingProject
-                    ? "Update Project"
-                    : "Create Project"}
-                </button>
-              </div>
-            </form>
+      {/* Form Modal */}
+      <Modal open={showForm} onClose={() => setShowForm(false)} title={editingProject ? "Edit Project" : "Add New Project"} size="lg">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Input label="Project Name *" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g., Build Hub Garden Estate" />
+            <Input label="Project Code" value={form.projectCode} onChange={(e) => setForm({ ...form, projectCode: e.target.value })} placeholder="e.g., AHG-001" />
           </div>
-        </div>
-      )}
-
-      {deleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="animate-scale-in w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-slate-900">Delete Project?</h3>
-            <p className="mt-2 text-sm text-slate-500">
-              This action cannot be undone. All units and associated data will be permanently removed.
-            </p>
-            {deleteError && (
-              <div className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-600">
-                {deleteError}
-              </div>
-            )}
-            <div className="mt-5 flex justify-end gap-3">
-              <button
-                onClick={() => { setDeleteConfirm(null); setDeleteError(""); }}
-                disabled={deleteLoading}
-                className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-medium text-slate-600 transition-all duration-200 hover:bg-slate-50 active:scale-[0.97] disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDelete(deleteConfirm)}
-                disabled={deleteLoading}
-                className="rounded-xl bg-gradient-to-br from-red-600 to-red-700 px-5 py-2.5 text-sm font-medium text-white shadow-md transition-all duration-200 hover:from-red-700 hover:to-red-800 active:scale-[0.97] disabled:opacity-50"
-              >
-                {deleteLoading ? "Deleting..." : "Delete"}
-              </button>
+          <Input label="Location" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="e.g., Phase 7, Gulshan-e-Maymar, Karachi" />
+          <Select label="Status" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} options={STATUSES} />
+          <Textarea label="Description" rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="e.g., A premium gated community with lush green parks..." />
+          {formError && (
+            <div className="flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-600">
+              <span className="text-red-500">&#9888;</span> {formError}
             </div>
+          )}
+          <div className="border-t border-slate-200 pt-5">
+            <MultiSelect
+              label="Assign Existing Units"
+              options={allUnits}
+              selected={assignedUnitIds}
+              onChange={setAssignedUnitIds}
+              placeholder="Search and select units..."
+            />
           </div>
-        </div>
-      )}
-    </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="secondary" type="button" onClick={() => setShowForm(false)}>Cancel</Button>
+            <Button type="submit" loading={saving}>{editingProject ? "Update Project" : "Save Project"}</Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Delete Confirm */}
+      <ConfirmDialog
+        open={deleteId !== null}
+        title="Delete Project?"
+        message="This action cannot be undone. All units and associated data will be permanently removed."
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleteLoading}
+        error={deleteError}
+        onConfirm={handleDelete}
+        onCancel={() => { setDeleteId(null); setDeleteError(""); }}
+      />
+
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
+    </motion.div>
   );
 }

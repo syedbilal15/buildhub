@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import ShellLayout from "./ShellLayout";
+import PageTransition from "./PageTransition";
 import type { ReactNode } from "react";
 
 export default function AppShell({ children }: { children: ReactNode }) {
@@ -12,5 +13,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
     return <>{children}</>;
   }
 
-  return <ShellLayout>{children}</ShellLayout>;
+  return (
+    <ShellLayout>
+      <PageTransition>{children}</PageTransition>
+    </ShellLayout>
+  );
 }

@@ -3,6 +3,7 @@
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Building2, Eye, EyeOff } from "lucide-react";
+import Button from "@/components/Button";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -97,13 +98,9 @@ export default function LoginPage() {
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-xl bg-gradient-to-br from-brand-600 to-brand-700 px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-brand-600/30 transition-all duration-200 hover:from-brand-700 hover:to-brand-800 active:scale-[0.97] disabled:opacity-50"
-            >
+            <Button type="submit" disabled={loading} className="w-full">
               {loading ? "Signing in..." : "Sign In"}
-            </button>
+            </Button>
           </form>
 
           <p className="mt-6 text-center text-xs text-slate-500">

@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { projects, units, bookings, activityLog } from "@/db/schema";
+import { projects, units, projectUnits, activityLog } from "@/db/schema";
 import { eq, count } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -11,15 +11,31 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const projectId = Number(id);
     const [project] = await db
       .select()
       .from(projects)
-      .where(eq(projects.id, Number(id)));
+      .where(eq(projects.id, projectId));
 
     if (!project) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
-    return NextResponse.json(project);
+
+    const assignedUnits = await db
+      .select({
+        id: units.id,
+        unitNumber: units.unitNumber,
+        name: units.name,
+        propertyType: units.propertyType,
+        area: units.area,
+        price: units.price,
+        status: units.status,
+      })
+      .from(projectUnits)
+      .innerJoin(units, eq(units.id, projectUnits.unitId))
+      .where(eq(projectUnits.projectId, projectId));
+
+    return NextResponse.json({ ...project, assignedUnits });
   } catch (error) {
     console.error("Project GET error:", error);
     return NextResponse.json({ error: "Failed to fetch project" }, { status: 500 });
@@ -34,6 +50,8 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
+    const projectId = Number(id);
+
     const [updated] = await db
       .update(projects)
       .set({
@@ -46,18 +64,30 @@ export async function PUT(
         completionDate: body.completionDate || null,
         amenities: body.amenities || [],
       })
-      .where(eq(projects.id, Number(id)))
+      .where(eq(projects.id, projectId))
       .returning();
 
     if (!updated) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
+    if (body.assignedUnitIds !== undefined) {
+      await db.delete(projectUnits).where(eq(projectUnits.projectId, projectId));
+      if (body.assignedUnitIds.length > 0) {
+        await db.insert(projectUnits).values(
+          body.assignedUnitIds.map((unitId: number) => ({
+            projectId,
+            unitId,
+          }))
+        );
+      }
+    }
+
     await db.insert(activityLog).values({
       action: "project_updated",
       details: `Project "${body.name}" updated`,
       entityType: "project",
-      entityId: Number(id),
+      entityId: projectId,
     });
 
     return NextResponse.json(updated);

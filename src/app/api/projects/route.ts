@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { projects, units, activityLog } from "@/db/schema";
+import { projects, units, projectUnits, activityLog } from "@/db/schema";
 import { eq, ilike, or, and, desc, count } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -49,25 +49,39 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const [newProject] = await db
-      .insert(projects)
-      .values({
-        name: body.name,
-        projectCode: body.projectCode || null,
-        location: body.location || null,
-        description: body.description || null,
-        status: body.status || "active",
-        launchDate: body.launchDate || null,
-        completionDate: body.completionDate || null,
-        amenities: body.amenities || [],
-      })
-      .returning();
 
-    await db.insert(activityLog).values({
-      action: "project_created",
-      details: `Project "${body.name}" created`,
-      entityType: "project",
-      entityId: newProject.id,
+    const newProject = await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(projects)
+        .values({
+          name: body.name,
+          projectCode: body.projectCode || null,
+          location: body.location || null,
+          description: body.description || null,
+          status: body.status || "active",
+          launchDate: body.launchDate || null,
+          completionDate: body.completionDate || null,
+          amenities: body.amenities || [],
+        })
+        .returning();
+
+      if (body.assignedUnitIds && body.assignedUnitIds.length > 0) {
+        await tx.insert(projectUnits).values(
+          body.assignedUnitIds.map((unitId: number) => ({
+            projectId: created.id,
+            unitId,
+          }))
+        );
+      }
+
+      await tx.insert(activityLog).values({
+        action: "project_created",
+        details: `Project "${body.name}" created`,
+        entityType: "project",
+        entityId: created.id,
+      });
+
+      return created;
     });
 
     return NextResponse.json(newProject, { status: 201 });
