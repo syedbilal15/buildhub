@@ -22,7 +22,6 @@ import Badge from "@/components/Badge";
 import Spinner from "@/components/Spinner";
 import Toast from "@/components/Toast";
 import ConfirmDialog from "@/components/ConfirmDialog";
-import MultiSelect from "@/components/MultiSelect";
 
 interface ProjectWithCount {
   project: {
@@ -64,9 +63,8 @@ export default function ProjectsPage() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleteError, setDeleteError] = useState("");
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const [assignedUnitIds, setAssignedUnitIds] = useState<number[]>([]);
-  const [allUnits, setAllUnits] = useState<{ value: number; label: string }[]>([]);
   const [formError, setFormError] = useState("");
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const fetchProjects = useCallback(async () => {
@@ -80,25 +78,12 @@ export default function ProjectsPage() {
 
   useEffect(() => { startTransition(() => fetchProjects()); }, [fetchProjects]);
 
-  const loadUnits = async () => {
-    if (allUnits.length > 0) return;
-    const res = await fetch("/api/units");
-    const data = await res.json();
-    setAllUnits(
-      data.map((item: { unit: { id: number; unitNumber: string; name: string | null } }) => ({
-        value: item.unit.id,
-        label: `${item.unit.unitNumber}${item.unit.name ? ` - ${item.unit.name}` : ""}`,
-      }))
-    );
-  };
-
   const openAddForm = async () => {
     setEditingProject(null);
     setForm(emptyForm);
-    setAssignedUnitIds([]);
+    setSelectedFiles([]);
     setFormError("");
     setShowForm(true);
-    loadUnits();
   };
 
   const openEditForm = async (item: ProjectWithCount) => {
@@ -110,20 +95,23 @@ export default function ProjectsPage() {
       description: item.project.description || "",
       status: item.project.status,
     });
+    setSelectedFiles([]);
     setShowForm(true);
-    const [unitsRes, projRes] = await Promise.all([
-      fetch("/api/units"),
-      fetch(`/api/projects/${item.project.id}`),
-    ]);
-    const unitsData = await unitsRes.json();
-    setAllUnits(
-      unitsData.map((u: { unit: { id: number; unitNumber: string; name: string | null } }) => ({
-        value: u.unit.id,
-        label: `${u.unit.unitNumber}${u.unit.name ? ` - ${u.unit.name}` : ""}`,
-      }))
-    );
-    const projData = await projRes.json();
-    setAssignedUnitIds((projData.assignedUnits || []).map((u: { id: number }) => u.id));
+  };
+
+  const uploadProjectFiles = async (projectId: number) => {
+    const formData = new FormData();
+    selectedFiles.forEach((file) => formData.append("files", file));
+
+    const res = await fetch(`/api/projects/${projectId}/files`, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || "Failed to upload files");
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -131,7 +119,7 @@ export default function ProjectsPage() {
     setFormError("");
     setSaving(true);
     try {
-      const payload = { ...form, assignedUnitIds };
+      const payload = { ...form };
       const res = editingProject
         ? await fetch(`/api/projects/${editingProject.id}`, {
             method: "PUT",
@@ -148,9 +136,23 @@ export default function ProjectsPage() {
         setFormError(data.error || "Failed to save project");
         return;
       }
+
+      const projectData = await res.json();
+      if (selectedFiles.length > 0) {
+        try {
+          await uploadProjectFiles(projectData.id);
+        } catch (uploadError: any) {
+          setFormError(uploadError.message || "File upload failed");
+          return;
+        }
+      }
+
       setShowForm(false);
-      setAssignedUnitIds([]);
-      setToast({ message: editingProject ? "Project updated successfully" : `Project "${form.name}" created`, type: "success" });
+      setSelectedFiles([]);
+      setToast({
+        message: editingProject ? "Project updated successfully" : `Project "${form.name}" created`,
+        type: "success",
+      });
       fetchProjects();
     } catch {
       setFormError("Network error. Please try again.");
@@ -273,21 +275,30 @@ export default function ProjectsPage() {
           <Input label="Location" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="e.g., Phase 7, Gulshan-e-Maymar, Karachi" />
           <Select label="Status" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} options={STATUSES} />
           <Textarea label="Description" rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="e.g., A premium gated community with lush green parks..." />
+          <Input
+            label="Project Files"
+            type="file"
+            accept="image/*,application/pdf"
+            multiple
+            onChange={(e) => setSelectedFiles(Array.from(e.target.files ?? []))}
+            helperText="Upload images or PDF documents from your computer"
+          />
+          {selectedFiles.length > 0 && (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+              <p className="font-semibold text-slate-900">Selected files</p>
+              <ul className="mt-2 list-disc pl-5">
+                {selectedFiles.map((file) => (
+                  <li key={file.name + file.size}>{file.name}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           {formError && (
             <div className="flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-600">
               <span className="text-red-500">&#9888;</span> {formError}
             </div>
           )}
-          <div className="border-t border-slate-200 pt-5">
-            <MultiSelect
-              label="Assign Existing Units"
-              options={allUnits}
-              selected={assignedUnitIds}
-              onChange={setAssignedUnitIds}
-              placeholder="Search and select units..."
-            />
-          </div>
-          <div className="flex justify-end gap-3 pt-2">
+              <div className="flex justify-end gap-3 pt-2">
             <Button variant="secondary" type="button" onClick={() => setShowForm(false)}>Cancel</Button>
             <Button type="submit" loading={saving}>{editingProject ? "Update Project" : "Save Project"}</Button>
           </div>
