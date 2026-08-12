@@ -29,6 +29,7 @@ interface Project {
   id: number; name: string; projectCode: string | null; location: string | null;
   description: string | null; status: string; launchDate: string | null;
   completionDate: string | null; amenities: string[] | null; createdAt: string;
+  images?: string[] | null; documents?: { name: string; url: string }[] | null;
   assignedUnits?: { id: number; unitNumber: string; name: string | null; propertyType: string; area: string | null; price: string; status: string }[];
 }
 
@@ -227,6 +228,46 @@ export default function ProjectDetailPage() {
         </div>
       </div>
 
+      {(project.images?.length ?? 0) > 0 && (
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-slate-900">
+            <Building2 size={16} className="text-brand-500" /> Project Images
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {project.images?.map((src, index) => (
+              <img
+                key={`${src}-${index}`}
+                src={src}
+                alt={`Project image ${index + 1}`}
+                className="h-40 w-full rounded-2xl object-cover"
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {(project.documents?.length ?? 0) > 0 && (
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-slate-900">
+            <Building2 size={16} className="text-brand-500" /> Project Documents
+          </h2>
+          <div className="space-y-3">
+            {project.documents?.map((doc) => (
+              <a
+                key={doc.url}
+                href={doc.url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-brand-200 hover:bg-brand-50"
+              >
+                <span>{doc.name}</span>
+                <span className="text-xs text-slate-500">PDF</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-5">
         {stats.map((s) => (
@@ -237,36 +278,6 @@ export default function ProjectDetailPage() {
         ))}
       </div>
 
-      {/* Assigned Units */}
-      {project.assignedUnits && project.assignedUnits.length > 0 && (
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 px-5 py-4">
-            <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900">
-              <Layers size={16} className="text-brand-500" /> Assigned Units
-              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{project.assignedUnits.length}</span>
-            </h2>
-          </div>
-          <div className="divide-y divide-slate-100">
-            {project.assignedUnits.map((u) => (
-              <Link
-                key={u.id}
-                href={`/units/${u.id}`}
-                className="flex items-center justify-between gap-4 px-5 py-4 transition-colors hover:bg-slate-50"
-              >
-                <div>
-                  <p className="font-medium text-slate-900">{u.unitNumber}</p>
-                  {u.name && <p className="text-sm text-slate-500">{u.name}</p>}
-                </div>
-                <div className="hidden text-right sm:block">
-                  <p className="text-sm text-slate-600">{PROPERTY_TYPES[u.propertyType] || u.propertyType}</p>
-                  <p className="text-sm font-medium text-slate-800">{formatCurrency(u.price)}</p>
-                </div>
-                <Badge>{u.status}</Badge>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Units */}
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
