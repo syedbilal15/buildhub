@@ -12,16 +12,9 @@ import {
   X,
   ChevronRight,
   LogOut,
-  Bell,
-  Moon,
-  Sun,
-  ChevronDown,
-  User,
 } from "lucide-react";
-import { useState, useEffect, startTransition, type ReactNode, useCallback } from "react";
+import { useState, useEffect, startTransition, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useTheme } from "./ThemeProvider";
-import Toast, { type ToastData } from "./Toast";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -217,127 +210,6 @@ function Sidebar() {
   );
 }
 
-// ─── Header ──────────────────────────────────────────────────────────────────
-
-function Header() {
-  const router = useRouter();
-  const { theme, toggle } = useTheme();
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
-  const [userName, setUserName] = useState("Admin User");
-  const [toast, setToast] = useState<ToastData | null>(null);
-
-  const handleSignOut = useCallback(() => {
-    try {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      setUserMenuOpen(false);
-      setToast({ message: "Signed out successfully.", type: "success" });
-      setTimeout(() => router.push("/login"), 800);
-    } catch {
-      setToast({ message: "Failed to sign out. Please try again.", type: "error" });
-    }
-  }, [router]);
-
-  useEffect(() => {
-    const stored = localStorage.getItem("user");
-    if (stored) {
-      try {
-        const u = JSON.parse(stored);
-        startTransition(() => setUserName(u.name || "Admin User"));
-      } catch { /* ignore */ }
-    }
-  }, []);
-
-  return (
-    <header className="sticky top-0 z-20 border-b border-border bg-surface/80 backdrop-blur-xl">
-      <div className="flex h-14 items-center justify-end gap-2 px-4 sm:px-6">
-        <div className="relative">
-          <motion.button
-            onClick={() => { setNotifOpen(!notifOpen); setUserMenuOpen(false); }}
-            className="relative flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-surface-card hover:text-text-primary"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <Bell size={16} />
-            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-brand-500 ring-2 ring-surface" />
-          </motion.button>
-          <AnimatePresence>
-            {notifOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                transition={{ duration: 0.15 }}
-                className="absolute right-0 top-full mt-2 w-72 rounded-xl border border-border bg-surface-card p-4 shadow-xl"
-              >
-                <p className="text-xs font-semibold text-text-primary">Notifications</p>
-                <p className="mt-2 text-xs text-text-secondary">No new notifications</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        <motion.button
-          onClick={toggle}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-surface-card hover:text-text-primary"
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
-        >
-          {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
-        </motion.button>
-
-        <div className="relative">
-          <motion.button
-            onClick={() => { setUserMenuOpen(!userMenuOpen); setNotifOpen(false); }}
-            className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-text-secondary transition-colors hover:bg-surface-card hover:text-text-primary"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-600/20 text-xs font-bold text-brand-600">
-              {userName.charAt(0).toUpperCase()}
-            </div>
-            <span className="hidden text-xs font-medium sm:inline">{userName}</span>
-            <ChevronDown size={12} className="hidden sm:inline" />
-          </motion.button>
-          <AnimatePresence>
-            {userMenuOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                transition={{ duration: 0.15 }}
-                className="absolute right-0 top-full mt-2 w-48 rounded-xl border border-border bg-surface-card p-1.5 shadow-xl"
-              >
-                <motion.button
-                  onClick={() => { setUserMenuOpen(false); router.push("/profile"); }}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-surface hover:text-text-primary"
-                  whileHover={{ x: 2 }}
-                  whileTap={{ scale: 0.97 }}
-                >
-                  <User size={14} />
-                  Profile
-                </motion.button>
-                <motion.button
-                  onClick={handleSignOut}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-red-500 transition-colors hover:bg-red-500/10"
-                  whileHover={{ x: 2 }}
-                  whileTap={{ scale: 0.97 }}
-                >
-                  <LogOut size={14} />
-                  Sign Out
-                </motion.button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
-      <Toast toast={toast} onDismiss={() => setToast(null)} />
-    </header>
-  );
-}
-
 // ─── Shell Layout ────────────────────────────────────────────────────────────
 
 export default function ShellLayout({ children }: { children: ReactNode }) {
@@ -345,7 +217,6 @@ export default function ShellLayout({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen bg-surface">
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
-        <Header />
         <main className="flex-1 overflow-auto">
           <div className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
             {children}

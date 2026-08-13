@@ -80,15 +80,14 @@ async function seed() {
   }
 
   const unitData = [
-    { projectIdx: 0, unitNumber: "V-001", name: "Villa A", propertyType: "villa", area: "5000", price: "25000000", status: "available", bedrooms: 5, bathrooms: 6, facing: "Park Facing", cornerUnit: true },
-    { projectIdx: 0, unitNumber: "V-002", name: "Villa B", propertyType: "villa", area: "4500", price: "22000000", status: "available", bedrooms: 4, bathrooms: 5, facing: "Main Boulevard", cornerUnit: false },
-    { projectIdx: 0, unitNumber: "P-101", name: "Plot 101", propertyType: "plot", area: "2500", price: "8500000", status: "available", bedrooms: 0, bathrooms: 0, facing: "East", cornerUnit: false },
-    { projectIdx: 0, unitNumber: "P-102", name: "Plot 102", propertyType: "plot", area: "3000", price: "9500000", status: "booked", bedrooms: 0, bathrooms: 0, facing: "West", cornerUnit: true },
-    { projectIdx: 1, unitNumber: "O-001", name: "Office Suite 1", propertyType: "office", area: "1500", price: "18000000", status: "available", bedrooms: 0, bathrooms: 2, facing: "Street", cornerUnit: false },
+    { projectIdx: 0, unitNumber: "A-001", name: "Apartment A", propertyType: "apartment", area: "1400", price: "15000000", status: "available", bedrooms: 3, bathrooms: 2, facing: "Garden", cornerUnit: false },
+    { projectIdx: 0, unitNumber: "A-002", name: "Apartment B", propertyType: "apartment", area: "1200", price: "13000000", status: "available", bedrooms: 2, bathrooms: 2, facing: "City View", cornerUnit: false },
+    { projectIdx: 0, unitNumber: "OR-001", name: "Open Roof 1", propertyType: "openRoof", area: "2000", price: "18000000", status: "available", bedrooms: 0, bathrooms: 1, facing: "North", cornerUnit: false },
+    { projectIdx: 0, unitNumber: "OR-002", name: "Open Roof 2", propertyType: "openRoof", area: "2500", price: "22000000", status: "booked", bedrooms: 0, bathrooms: 1, facing: "West", cornerUnit: true },
     { projectIdx: 1, unitNumber: "S-001", name: "Shop 1", propertyType: "shop", area: "800", price: "12000000", status: "available", bedrooms: 0, bathrooms: 1, facing: "Main Road", cornerUnit: false },
     { projectIdx: 1, unitNumber: "S-002", name: "Shop 2", propertyType: "shop", area: "750", price: "11000000", status: "sold", bedrooms: 0, bathrooms: 1, facing: "Main Road", cornerUnit: false },
-    { projectIdx: 2, unitNumber: "A-101", name: "Apartment 101", propertyType: "apartment", area: "1400", price: "15000000", status: "available", bedrooms: 3, bathrooms: 2, facing: "Garden", cornerUnit: false },
-    { projectIdx: 2, unitNumber: "A-102", name: "Apartment 102", propertyType: "apartment", area: "1200", price: "13000000", status: "available", bedrooms: 2, bathrooms: 2, facing: "City View", cornerUnit: false },
+    { projectIdx: 2, unitNumber: "PH-101", name: "Pent House 101", propertyType: "pentHouse", area: "3500", price: "45000000", status: "available", bedrooms: 4, bathrooms: 3, facing: "Panoramic", cornerUnit: true },
+    { projectIdx: 2, unitNumber: "PH-102", name: "Pent House 102", propertyType: "pentHouse", area: "3800", price: "50000000", status: "available", bedrooms: 4, bathrooms: 4, facing: "City View", cornerUnit: false },
   ];
 
   const createdUnits: { id: number; unitNumber: string }[] = [];

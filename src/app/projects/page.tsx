@@ -100,17 +100,30 @@ export default function ProjectsPage() {
   };
 
   const uploadProjectFiles = async (projectId: number) => {
+    if (selectedFiles.length === 0) return;
+
     const formData = new FormData();
     selectedFiles.forEach((file) => formData.append("files", file));
 
-    const res = await fetch(`/api/projects/${projectId}/files`, {
-      method: "POST",
-      body: formData,
-    });
+    try {
+      const res = await fetch(`/api/projects/${projectId}/files`, {
+        method: "POST",
+        body: formData,
+      });
 
-    if (!res.ok) {
-      const data = await res.json();
-      throw new Error(data.error || "Failed to upload files");
+      if (!res.ok) {
+        const data = await res.json();
+        const errorMsg = data.error || "Failed to upload files";
+        console.error("Upload error:", errorMsg);
+        throw new Error(errorMsg);
+      }
+
+      const result = await res.json();
+      console.log(`Successfully uploaded ${result.uploadedCount || selectedFiles.length} files`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to upload files";
+      console.error("File upload error:", message);
+      throw new Error(message);
     }
   };
 

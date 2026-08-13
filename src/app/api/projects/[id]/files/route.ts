@@ -54,12 +54,7 @@ export async function POST(
       );
     }
 
-    const uploadDir = path.join(UPLOAD_ROOT, String(projectId));
-    await fs.mkdir(uploadDir, { recursive: true });
-
-    const images = project.images || [];
-    const documents = project.documents || [];
-
+    // Validate file sizes first
     for (const file of allowedFiles) {
       if (file.size > MAX_FILE_SIZE) {
         return NextResponse.json(
@@ -67,34 +62,60 @@ export async function POST(
           { status: 413 }
         );
       }
+    }
 
-      const extension = path.extname(file.name) || (file.type === "application/pdf" ? ".pdf" : ".img");
-      const fileName = `${Date.now()}-${randomUUID()}${extension}`;
-      const safeName = sanitizeFileName(fileName);
-      const filePath = path.join(uploadDir, safeName);
-      const buffer = Buffer.from(await file.arrayBuffer());
+    const uploadDir = path.join(UPLOAD_ROOT, String(projectId));
+    await fs.mkdir(uploadDir, { recursive: true });
 
-      await fs.writeFile(filePath, buffer);
+    const images = (project.images as string[]) || [];
+    const documents = (project.documents as Array<{ name: string; url: string }>) || [];
 
-      const publicUrl = `/uploads/projects/${projectId}/${safeName}`;
-      if (file.type === "application/pdf") {
-        documents.push({ name: file.name, url: publicUrl });
-      } else {
-        images.push(publicUrl);
+    const uploadedFiles: { type: 'image' | 'pdf'; name: string; url: string }[] = [];
+
+    for (const file of allowedFiles) {
+      try {
+        const extension = path.extname(file.name) || (file.type === "application/pdf" ? ".pdf" : ".img");
+        const fileName = `${Date.now()}-${randomUUID()}${extension}`;
+        const safeName = sanitizeFileName(fileName);
+        const filePath = path.join(uploadDir, safeName);
+        const buffer = Buffer.from(await file.arrayBuffer());
+
+        await fs.writeFile(filePath, buffer);
+
+        const publicUrl = `/uploads/projects/${projectId}/${safeName}`;
+        if (file.type === "application/pdf") {
+          documents.push({ name: file.name, url: publicUrl });
+          uploadedFiles.push({ type: 'pdf', name: file.name, url: publicUrl });
+        } else {
+          images.push(publicUrl);
+          uploadedFiles.push({ type: 'image', name: file.name, url: publicUrl });
+        }
+      } catch (fileError) {
+        console.error(`Error uploading file ${file.name}:`, fileError);
+        throw new Error(`Failed to upload ${file.name}: ${fileError instanceof Error ? fileError.message : 'Unknown error'}`);
       }
     }
 
-    const [updated] = await db
-      .update(projects)
-      .set({ images, documents })
-      .where(eq(projects.id, projectId))
-      .returning();
+    try {
+      const [updated] = await db
+        .update(projects)
+        .set({ images, documents })
+        .where(eq(projects.id, projectId))
+        .returning();
 
-    return NextResponse.json({ images: updated.images, documents: updated.documents });
+      return NextResponse.json({ 
+        images: updated.images, 
+        documents: updated.documents,
+        uploadedCount: uploadedFiles.length
+      });
+    } catch (dbError) {
+      console.error("Database update error:", dbError);
+      throw new Error(`Failed to save files to database: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`);
+    }
   } catch (error) {
     console.error("Project files upload error:", error);
     return NextResponse.json(
-      { error: "Failed to upload project files" },
+      { error: error instanceof Error ? error.message : "Failed to upload project files" },
       { status: 500 }
     );
   }

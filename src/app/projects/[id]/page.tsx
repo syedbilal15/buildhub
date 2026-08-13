@@ -16,6 +16,7 @@ import {
   ClipboardList,
   Code,
   DollarSign,
+  Download,
 } from "lucide-react";
 import Button from "@/components/Button";
 import Input from "@/components/Input";
@@ -45,9 +46,23 @@ interface BookingItem {
 }
 
 const PROPERTY_TYPES: Record<string, string> = {
-  apartment: "Apartment", office: "Office", shop: "Shop",
-  villa: "Villa", plot: "Plot", warehouse: "Warehouse", commercial: "Commercial",
+  apartment: "Apartment", shop: "Shop", openRoof: "Open Roof", pentHouse: "Pent House",
 };
+
+const FLOOR_OPTIONS = [
+  { value: "ground", label: "Ground" },
+  { value: "mezzanine", label: "Mezzanine" },
+  { value: "first", label: "First" },
+  { value: "second", label: "Second" },
+  { value: "third", label: "Third" },
+  { value: "fourth", label: "Fourth" },
+  { value: "fifth", label: "Fifth" },
+  { value: "sixth", label: "Sixth" },
+  { value: "seventh", label: "Seventh" },
+  { value: "eighth", label: "Eighth" },
+  { value: "ninth", label: "Ninth" },
+  { value: "tenth", label: "Tenth" },
+];
 
 function formatCurrency(amount: string | number) {
   const num = typeof amount === "string" ? parseFloat(amount) : amount;
@@ -74,7 +89,7 @@ export default function ProjectDetailPage() {
   const [deleteUnitLoading, setDeleteUnitLoading] = useState(false);
   const [projectBookings, setProjectBookings] = useState<BookingItem[]>([]);
   const [unitForm, setUnitForm] = useState({
-    unitNumber: "", name: "", propertyType: "apartment", area: "", price: "", status: "available",
+    unitNumber: "", name: "", propertyType: "apartment", floor: "", area: "", price: "", status: "available",
     bedrooms: "", bathrooms: "", facing: "", cornerUnit: false,
   });
 
@@ -112,14 +127,14 @@ export default function ProjectDetailPage() {
 
   const openAddUnit = () => {
     setEditingUnit(null);
-    setUnitForm({ unitNumber: "", name: "", propertyType: "apartment", area: "", price: "", status: "available", bedrooms: "", bathrooms: "", facing: "", cornerUnit: false });
+    setUnitForm({ unitNumber: "", name: "", propertyType: "apartment", floor: "", area: "", price: "", status: "available", bedrooms: "", bathrooms: "", facing: "", cornerUnit: false });
     setShowUnitForm(true);
   };
 
   const openEditUnit = (unit: Unit) => {
     setEditingUnit(unit);
     setUnitForm({
-      unitNumber: unit.unitNumber, name: unit.name || "", propertyType: unit.propertyType,
+      unitNumber: unit.unitNumber, name: unit.name || "", propertyType: unit.propertyType, floor: unit.floor || "",
       area: unit.area || "", price: unit.price, status: unit.status,
       bedrooms: unit.bedrooms?.toString() || "", bathrooms: unit.bathrooms?.toString() || "",
       facing: "", cornerUnit: false,
@@ -249,19 +264,26 @@ export default function ProjectDetailPage() {
       {(project.documents?.length ?? 0) > 0 && (
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-slate-900">
-            <Building2 size={16} className="text-brand-500" /> Project Documents
+            <ClipboardList size={16} className="text-brand-500" /> Documents
           </h2>
-          <div className="space-y-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {project.documents?.map((doc) => (
               <a
                 key={doc.url}
                 href={doc.url}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-brand-200 hover:bg-brand-50"
+                className="group relative flex flex-col items-start gap-2 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100 p-4 transition-all hover:border-brand-300 hover:shadow-md"
               >
-                <span>{doc.name}</span>
-                <span className="text-xs text-slate-500">PDF</span>
+                <div className="flex w-full items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-slate-900 group-hover:text-brand-600">
+                      {doc.name}
+                    </p>
+                    <p className="text-xs text-slate-500">PDF Document</p>
+                  </div>
+                  <Download size={16} className="shrink-0 text-slate-400 group-hover:text-brand-600" />
+                </div>
               </a>
             ))}
           </div>
@@ -388,6 +410,9 @@ export default function ProjectDetailPage() {
           </div>
           <div className="grid gap-5 sm:grid-cols-2">
             <Select label="Property Type" value={unitForm.propertyType} onChange={(e) => setUnitForm({ ...unitForm, propertyType: e.target.value })} options={Object.entries(PROPERTY_TYPES).map(([k, v]) => ({ value: k, label: v }))} />
+            <Select label="Floor" value={unitForm.floor} onChange={(e) => setUnitForm({ ...unitForm, floor: e.target.value })} options={FLOOR_OPTIONS} />
+          </div>
+          <div className="grid gap-5 sm:grid-cols-2">
             <Input label="Area (sq ft)" type="number" step="0.01" value={unitForm.area} onChange={(e) => setUnitForm({ ...unitForm, area: e.target.value })} placeholder="e.g., 5000" />
           </div>
           <div className="grid gap-5 sm:grid-cols-2">

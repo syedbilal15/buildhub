@@ -21,8 +21,7 @@ interface UnitListItem {
 }
 
 const PROPERTY_TYPES: Record<string, string> = {
-  apartment: "Apartment", office: "Office", shop: "Shop",
-  villa: "Villa", plot: "Plot", warehouse: "Warehouse", commercial: "Commercial",
+  apartment: "Apartment", shop: "Shop", openRoof: "Open Roof", pentHouse: "Pent House",
 };
 
 function formatCurrency(amount: string | number) {

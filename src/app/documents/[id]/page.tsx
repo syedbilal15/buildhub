@@ -67,8 +67,7 @@ interface BookingDetail {
 }
 
 const PROPERTY_TYPES: Record<string, string> = {
-  apartment: "Apartment", office: "Office", shop: "Shop",
-  villa: "Villa", plot: "Plot", warehouse: "Warehouse", commercial: "Commercial",
+  apartment: "Apartment", shop: "Shop", openRoof: "Open Roof", pentHouse: "Pent House",
 };
 
 export default function DocumentPage() {
@@ -132,147 +131,114 @@ export default function DocumentPage() {
       <div id="print-area" className="mx-auto max-w-[210mm] bg-white p-10 sm:p-12 sm:pb-8"
         style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: "12pt", lineHeight: "1.6", color: "#000" }}
       >
-        {/* Title */}
-        <h1 className="text-center text-2xl font-bold tracking-wide" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
-          PURCHASE AGREEMENT
-        </h1>
-        <hr className="my-4 border-t border-black" />
+        {/* Header */}
+        <div className="mb-6 text-center">
+          <h1 className="text-2xl font-bold tracking-wide">BUILD HUB</h1>
+          <p className="text-sm">Purchase Agreement</p>
+          <hr className="my-3 border-t-2 border-black" />
+        </div>
 
-        {/* 1. Agreement Date */}
+        {/* Agreement Date */}
         <div className="mb-6">
-          <h2 className="mb-2 text-base font-bold">1. AGREEMENT DATE</h2>
-          <p className="mb-1 text-sm">This Purchase Agreement (&ldquo;Agreement&rdquo;) is entered into on:</p>
           <p className="text-sm">
-            <span className="border-b border-black px-1 font-medium">{String(day)}</span> Day of{" "}
-            <span className="border-b border-black px-1 font-medium">{String(month)}</span>,{" "}
-            <span className="border-b border-black px-1 font-medium">{String(year)}</span>
+            This Agreement is entered into on:{" "}
+            <span className="border-b border-black px-2 font-medium">{String(day)}</span> / {" "}
+            <span className="border-b border-black px-2 font-medium">{String(month)}</span> / {" "}
+            <span className="border-b border-black px-2 font-medium">{String(year)}</span>
           </p>
         </div>
 
-        {/* 2. Seller Information */}
+        {/* 2. Client Information */}
         <div className="mb-6">
-          <h2 className="mb-2 text-base font-bold">2. SELLER INFORMATION</h2>
+          <h2 className="mb-2 text-base font-bold">CLIENT INFORMATION</h2>
           <table className="w-full text-sm">
             <tbody>
-              <tr><td className="w-28 py-1 align-top font-medium">Seller Name:</td><td className="border-b border-black py-1">Build Hub</td></tr>
-              <tr><td className="w-28 py-1 align-top font-medium">Seller CNIC:</td><td className="border-b border-black py-1">_________________________</td></tr>
-              <tr><td className="w-28 py-1 align-top font-medium">Seller Address:</td><td className="border-b border-black py-1">Lahore, Pakistan</td></tr>
-              <tr><td className="w-28 py-1 align-top font-medium">Seller Phone:</td><td className="border-b border-black py-1">+92-300-0000000</td></tr>
+              <tr><td className="w-32 py-1 font-medium">Name:</td><td className="border-b border-black py-1">{data.client?.name || "_________________________"}</td></tr>
+              <tr><td className="w-32 py-1 font-medium">CNIC:</td><td className="border-b border-black py-1">{data.client?.cnic || "_________________________"}</td></tr>
+              <tr><td className="w-32 py-1 font-medium">Phone:</td><td className="border-b border-black py-1">{data.client?.phone || "_________________________"}</td></tr>
+              <tr><td className="w-32 py-1 font-medium">Address:</td><td className="border-b border-black py-1">{data.client?.address || "_________________________"}</td></tr>
             </tbody>
           </table>
         </div>
 
-        {/* 3. Buyer Information */}
+        {/* 3. Property Information */}
         <div className="mb-6">
-          <h2 className="mb-2 text-base font-bold">3. BUYER INFORMATION</h2>
+          <h2 className="mb-2 text-base font-bold">PROPERTY INFORMATION</h2>
           <table className="w-full text-sm">
             <tbody>
-              <tr><td className="w-28 py-1 align-top font-medium">Buyer Name:</td><td className="border-b border-black py-1">{data.client?.name || "_________________________"}</td></tr>
-              <tr><td className="w-28 py-1 align-top font-medium">Buyer CNIC:</td><td className="border-b border-black py-1">{data.client?.cnic || "_________________________"}</td></tr>
-              <tr><td className="w-28 py-1 align-top font-medium">Buyer Address:</td><td className="border-b border-black py-1">{data.client?.address || "_________________________"}</td></tr>
-              <tr><td className="w-28 py-1 align-top font-medium">Buyer Phone:</td><td className="border-b border-black py-1">{data.client?.phone || "_________________________"}</td></tr>
+              <tr><td className="w-32 py-1 font-medium">Project:</td><td className="border-b border-black py-1">{data.project?.name || "_________________________"}</td></tr>
+              <tr><td className="w-32 py-1 font-medium">Unit:</td><td className="border-b border-black py-1">{data.unit?.unitNumber || "_________________________"}</td></tr>
+              <tr><td className="w-32 py-1 font-medium">Type:</td><td className="border-b border-black py-1">{data.unit ? (PROPERTY_TYPES[data.unit.propertyType] || data.unit.propertyType) : "_________________________"}</td></tr>
+              <tr><td className="w-32 py-1 font-medium">Floor:</td><td className="border-b border-black py-1">{data.unit?.floor || "_________________________"}</td></tr>
+              <tr><td className="w-32 py-1 font-medium">Area:</td><td className="border-b border-black py-1">{data.unit?.area ? `${data.unit.area} ${data.unit.areaUnit}` : "_________________________"}</td></tr>
             </tbody>
           </table>
         </div>
 
-        {/* 4. Property Information */}
+        {/* 4. Price Information */}
         <div className="mb-6">
-          <h2 className="mb-2 text-base font-bold">4. PROPERTY INFORMATION</h2>
+          <h2 className="mb-2 text-base font-bold">PRICE INFORMATION</h2>
           <table className="w-full text-sm">
             <tbody>
-              <tr><td className="w-32 py-1 align-top font-medium">Project Name:</td><td className="border-b border-black py-1">{data.project?.name || data.unit ? "—" : "_________________________"}</td></tr>
-              <tr><td className="w-32 py-1 align-top font-medium">Unit Number:</td><td className="border-b border-black py-1">{data.project?.unitNumber || data.unit?.unitNumber || "_________________________"}</td></tr>
-              <tr><td className="w-32 py-1 align-top font-medium">Unit Type:</td><td className="border-b border-black py-1">{data.unit ? (PROPERTY_TYPES[data.unit.propertyType] || data.unit.propertyType) : "_________________________"}</td></tr>
-              <tr><td className="w-32 py-1 align-top font-medium">Floor:</td><td className="border-b border-black py-1">{data.unit?.floor || "_________________________"}</td></tr>
-              <tr><td className="w-32 py-1 align-top font-medium">Area:</td><td className="border-b border-black py-1">{data.unit?.area ? `${data.unit.area} ${data.unit.areaUnit}` : data.project?.size ? `${data.project.size} ${data.project.sizeUnit || ""}` : "_________________________"}</td></tr>
-              <tr><td className="w-32 py-1 align-top font-medium">Block:</td><td className="border-b border-black py-1">{data.unit?.block || "_________________________"}</td></tr>
-              <tr><td className="w-32 py-1 align-top font-medium">Property Address:</td><td className="border-b border-black py-1">{data.project?.address || "_________________________"}</td></tr>
+              <tr><td className="w-40 py-1 font-medium">Total Price:</td><td className="border-b border-black py-1 text-right font-bold">{formatCurrency(salePrice)}</td></tr>
+              <tr><td className="w-40 py-1 font-medium">Down Payment:</td><td className="border-b border-black py-1 text-right">{formatCurrency(downPaymentAmount)}</td></tr>
+              <tr><td className="w-40 py-1 font-medium">Amount Paid:</td><td className="border-b border-black py-1 text-right">{formatCurrency(grandTotalPaid)}</td></tr>
+              <tr className="font-bold"><td className="w-40 py-1">Balance Due:</td><td className="border-b-2 border-black py-1 text-right">{formatCurrency(remaining)}</td></tr>
             </tbody>
           </table>
         </div>
 
-        {/* 5. Purchase Price */}
-        <div className="mb-6">
-          <h2 className="mb-2 text-base font-bold">5. PURCHASE PRICE</h2>
-          <table className="w-full text-sm">
-            <tbody>
-              <tr><td className="w-40 py-1 align-top font-medium">Purchase Price:</td><td className="border-b border-black py-1 text-right font-bold">{formatCurrency(salePrice)}</td></tr>
-              <tr><td className="w-40 py-1 align-top font-medium">Amount Paid:</td><td className="border-b border-black py-1 text-right font-bold">{formatCurrency(grandTotalPaid)}</td></tr>
-              <tr><td className="w-40 py-1 align-top font-medium">Remaining Balance:</td><td className="border-b border-black py-1 text-right font-bold">{formatCurrency(remaining)}</td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        {/* 6. Payment Method */}
-        <div className="mb-6">
-          <h2 className="mb-2 text-base font-bold">6. PAYMENT METHOD</h2>
-          <div className="space-y-1 text-sm">
-            <p><span className="font-mono">{isInstallment ? "\u25a0" : "\u25a1"}</span> Cash</p>
-            <p><span className="font-mono">{isInstallment ? "\u25a1" : "\u25a1"}</span> Bank Transfer</p>
-            <p><span className="font-mono">{isInstallment ? "\u25a1" : "\u25a1"}</span> Cheque</p>
-            <p><span className="font-mono">{isInstallment ? "\u25a0" : "\u25a1"}</span> Installments</p>
+        {/* 5. Installment Schedule */}
+        {isInstallment && (
+          <div className="mb-6">
+            <h2 className="mb-2 text-base font-bold">INSTALLMENT SCHEDULE</h2>
+            {data.installments.length > 0 && (
+              <div className="border border-black text-xs">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-black bg-gray-100">
+                      <th className="py-1 px-2 text-left font-bold">Due Date</th>
+                      <th className="py-1 px-2 text-right font-bold">Amount</th>
+                      <th className="py-1 px-2 text-right font-bold">Paid</th>
+                      <th className="py-1 px-2 text-left font-bold">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.installments.slice(0, 15).map((inst) => (
+                      <tr key={inst.id} className="border-b border-gray-300">
+                        <td className="py-1 px-2">{formatDateSimple(inst.dueDate)}</td>
+                        <td className="py-1 px-2 text-right">{formatCurrency(inst.amount)}</td>
+                        <td className="py-1 px-2 text-right">{formatCurrency(inst.paidAmount)}</td>
+                        <td className="py-1 px-2 capitalize">{inst.status}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
-          {isInstallment && (
-            <div className="mt-3 pl-6 text-sm">
-              <table className="w-full text-sm">
-                <tbody>
-                  <tr><td className="w-48 py-1 font-medium">Number of Installments:</td><td className="border-b border-black py-1">{data.booking.installmentCount}</td></tr>
-                  <tr><td className="w-48 py-1 font-medium">Monthly Installment Amount:</td><td className="border-b border-black py-1">{data.booking.installmentAmount ? formatCurrency(data.booking.installmentAmount) : "—"}</td></tr>
-                  <tr><td className="w-48 py-1 font-medium">Next Due Date:</td><td className="border-b border-black py-1">{nextDueInstallment ? formatDateSimple(nextDueInstallment.dueDate) : "—"}</td></tr>
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        )}
 
-        {/* 7. Terms and Conditions */}
-        <div className="mb-6">
-          <h2 className="mb-2 text-base font-bold">7. TERMS AND CONDITIONS</h2>
-          <ol className="ml-5 list-decimal space-y-1.5 text-sm">
-            <li>The Seller agrees to sell the above-described property to the Buyer at the agreed purchase price.</li>
-            <li>The Buyer agrees to purchase the property and make payment according to the terms set forth in this Agreement.</li>
-            <li>Ownership and title documents shall be transferred to the Buyer only after full payment of the purchase price has been received.</li>
-            <li>Late payments may incur additional charges or penalties as determined by the Seller.</li>
-            <li>Both parties agree to comply with all applicable laws and regulations governing the sale of property.</li>
-            <li>This Agreement shall become effective upon signing by both parties.</li>
-            <li>Any modification to this Agreement must be made in writing and signed by both parties.</li>
-            <li>This Agreement constitutes the entire understanding between the parties with respect to the subject matter hereof.</li>
-          </ol>
-        </div>
-
-        {/* 8. Signatures */}
-        <div className="mb-6">
-          <h2 className="mb-3 text-base font-bold">8. SIGNATURES</h2>
+        {/* 6. Signatures */}
+        <div className="mt-8" style={{ pageBreakInside: "avoid" }}>
+          <h2 className="mb-4 text-base font-bold">SIGNATURES</h2>
           <div className="grid grid-cols-2 gap-x-8 gap-y-6 text-sm">
             <div>
-              <p className="mb-1 font-medium">Seller Signature</p>
-              <div className="border-b border-black h-8 mb-1" />
-              <p className="text-xs text-gray-600">Build Hub</p>
+              <p className="mb-2 font-bold">Client Signature</p>
+              <div className="border-b-2 border-black h-8 mb-2" />
+              <p className="text-xs">{data.client?.name || "_________________________"}</p>
             </div>
             <div>
-              <p className="mb-1 font-medium">Buyer Signature</p>
-              <div className="border-b border-black h-8 mb-1" />
-              <p className="text-xs text-gray-600">{data.client?.name || "_________________________"}</p>
-            </div>
-            <div>
-              <p className="mb-1 font-medium">Witness 1</p>
-              <div className="border-b border-black h-8 mb-1" />
-            </div>
-            <div>
-              <p className="mb-1 font-medium">Witness 2</p>
-              <div className="border-b border-black h-8 mb-1" />
-            </div>
-            <div className="col-span-2">
-              <p className="mb-1 font-medium">Date</p>
-              <div className="border-b border-black h-8 mb-1" />
+              <p className="mb-2 font-bold">Builder Signature</p>
+              <div className="border-b-2 border-black h-8 mb-2" />
+              <p className="text-xs">Build Hub</p>
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="mt-8 border-t border-black pt-3 text-center text-xs text-gray-500">
-          <p>Ref: {data.booking.referenceNumber || "N/A"} &middot; Generated: {new Date().toLocaleDateString("en-PK", { year: "numeric", month: "long", day: "numeric" })}</p>
-          <p className="mt-0.5">This is a computer-generated document from Build Hub Management System.</p>
+        <div className="mt-8 border-t border-black pt-3 text-center text-xs text-gray-600">
+          <p>Ref: {data.booking.referenceNumber || "N/A"} | {new Date().toLocaleDateString("en-PK")}</p>
         </div>
       </div>
     </div>

@@ -34,7 +34,7 @@ async function main() {
     {
       unitNumber: '101',
       name: 'Unit #101',
-      propertyType: 'residential',
+      propertyType: 'apartment',
       area: '120',
       areaUnit: 'sq yards',
       price: '5000000',
@@ -43,7 +43,7 @@ async function main() {
     {
       unitNumber: '102',
       name: 'Unit #102',
-      propertyType: 'commercial',
+      propertyType: 'shop',
       area: '80',
       areaUnit: 'sq yards',
       price: '7500000',
