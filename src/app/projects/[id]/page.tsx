@@ -35,7 +35,7 @@ interface Project {
 }
 
 interface Unit {
-  id: number; unitNumber: string; name: string | null; propertyType: string;
+  id: number; unitNumber: string; name: string | null; propertyType: string; floor: string | null;
   area: string | null; price: string; status: string; bedrooms: number | null; bathrooms: number | null;
 }
 
