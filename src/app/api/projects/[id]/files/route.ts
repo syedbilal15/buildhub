@@ -1,19 +1,11 @@
 import { db } from "@/db";
 import { projects } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { promises as fs } from "fs";
-import path from "path";
-import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-const UPLOAD_ROOT = path.join(process.cwd(), "public", "uploads", "projects");
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
-
-function sanitizeFileName(name: string) {
-  return path.basename(name).replace(/[^a-zA-Z0-9._-]/g, "_");
-}
 
 export async function POST(
   request: NextRequest,
@@ -64,35 +56,75 @@ export async function POST(
       }
     }
 
-    const uploadDir = path.join(UPLOAD_ROOT, String(projectId));
-    await fs.mkdir(uploadDir, { recursive: true });
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = process.env.CLOUDINARY_UPLOAD_PRESET;
+
+    if (!cloudName || !uploadPreset) {
+      throw new Error(
+        "Cloudinary configuration is missing. Set CLOUDINARY_CLOUD_NAME and CLOUDINARY_UPLOAD_PRESET."
+      );
+    }
 
     const images = (project.images as string[]) || [];
-    const documents = (project.documents as Array<{ name: string; url: string }>) || [];
+    const documents =
+      (project.documents as Array<{ name: string; url: string }>) || [];
 
-    const uploadedFiles: { type: 'image' | 'pdf'; name: string; url: string }[] = [];
+    const uploadedFiles: Array<{ type: "image" | "pdf"; name: string; url: string }> = [];
 
     for (const file of allowedFiles) {
       try {
-        const extension = path.extname(file.name) || (file.type === "application/pdf" ? ".pdf" : ".img");
-        const fileName = `${Date.now()}-${randomUUID()}${extension}`;
-        const safeName = sanitizeFileName(fileName);
-        const filePath = path.join(uploadDir, safeName);
-        const buffer = Buffer.from(await file.arrayBuffer());
+        const cloudinaryFormData = new FormData();
+        cloudinaryFormData.append("file", file);
+        cloudinaryFormData.append("upload_preset", uploadPreset);
+        cloudinaryFormData.append("folder", `buildhub/projects/${projectId}`);
 
-        await fs.writeFile(filePath, buffer);
+        const cloudinaryResponse = await fetch(
+          `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
+          {
+            method: "POST",
+            body: cloudinaryFormData,
+          }
+        );
 
-        const publicUrl = `/uploads/projects/${projectId}/${safeName}`;
+        const responseText = await cloudinaryResponse.text();
+        let cloudinaryResult: any;
+
+        try {
+          cloudinaryResult = JSON.parse(responseText);
+        } catch {
+          cloudinaryResult = {};
+        }
+
+        if (!cloudinaryResponse.ok || !cloudinaryResult?.secure_url) {
+          const message =
+            cloudinaryResult?.error?.message ||
+            responseText ||
+            `Cloudinary upload failed for ${file.name}`;
+          throw new Error(message);
+        }
+
+        const secureUrl = cloudinaryResult.secure_url as string;
+
         if (file.type === "application/pdf") {
-          documents.push({ name: file.name, url: publicUrl });
-          uploadedFiles.push({ type: 'pdf', name: file.name, url: publicUrl });
+          documents.push({ name: file.name, url: secureUrl });
+          uploadedFiles.push({
+            type: "pdf",
+            name: file.name,
+            url: secureUrl,
+          });
         } else {
-          images.push(publicUrl);
-          uploadedFiles.push({ type: 'image', name: file.name, url: publicUrl });
+          images.push(secureUrl);
+          uploadedFiles.push({
+            type: "image",
+            name: file.name,
+            url: secureUrl,
+          });
         }
       } catch (fileError) {
         console.error(`Error uploading file ${file.name}:`, fileError);
-        throw new Error(`Failed to upload ${file.name}: ${fileError instanceof Error ? fileError.message : 'Unknown error'}`);
+        throw new Error(
+          `Failed to upload ${file.name}: ${fileError instanceof Error ? fileError.message : "Unknown error"}`
+        );
       }
     }
 
